@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Muestra guardada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 24px;
+            max-width: 820px;
+        }
+
+        .box {
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .k {
+            font-weight: 700;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Muestra guardada ✅</h2>
+    <div class="box">
+        <div><span class="k">ID:</span> {{ muestra.id }}</div>
+        <div><span class="k">Código de barras:</span> {{ muestra.codigo_barra }}</div>
+        <div style="margin-top:20px;">
+            <img src="{{ muestra.barcode_image }}" width="300">
+        </div>
+        <div style="margin-top:15px;">
+            <a href="/muestras/{{ muestra.id }}/print-raw">
+                🖨 Imprimir etiqueta (Industrial)
+            </a>
+        </div>
+        <div><span class="k">Nivel:</span> {{ muestra.nivel }}</div>
+        <div><span class="k">Caja:</span> {{ muestra.numero_caja }}</div>
+        <div><span class="k">Especie:</span> {{ muestra.codigo_utn_especie }}</div>
+        <div><span class="k">Réplica:</span> {{ muestra.numero_replica }}</div>
+        <div><span class="k">Tubo en caja:</span> {{ muestra.numero_tubo_en_caja }}</div>
+        <div><span class="k">Muestra CCMBIOGEM:</span> {{ muestra.numero_muestra_ccmbi_ogem }}</div>
+        <div><span class="k">Medio cultivo:</span> {{ muestra.medio_cultivo }}</div>
+        <div><span class="k">Ubicación:</span> {{ muestra.ubicacion_refrigerador or "-" }}</div>
+        <div><span class="k">Creado:</span> {{ muestra.created_at }}</div>
+    </div>
+
+    <a href="/">Registrar otra</a>
+</body>
+
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Registro de Muestras UTN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 24px;
+            max-width: 820px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+        }
+
+        button {
+            margin-top: 16px;
+            padding: 10px 14px;
+            cursor: pointer;
+        }
+
+        .hint {
+            color: #555;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Registro de muestra</h2>
+
+    <form method="post" action="/muestras">
+        <label>Nivel</label>
+        <input name="nivel" placeholder="Ej: PISO 1" required />
+
+        <label>Número de caja</label>
+        <input name="numero_caja" placeholder="Ej: Caja 1 2024" required />
+        <div class="hint">Tip: puedes poner "Caja 1 2024" tal como lo manejan.</div>
+
+        <label>Código UTN especie</label>
+        <input name="codigo_utn_especie" placeholder="Ej: Lev5" required />
+
+        <label>Número réplica</label>
+        <input name="numero_replica" type="number" min="1" required />
+
+        <label>Número de tubo en la caja</label>
+        <input name="numero_tubo_en_caja" type="number" min="1" required />
+
+        <label>N° muestra en collection CCMBIOGEM</label>
+        <input name="numero_muestra_ccmbi_ogem" placeholder="Ej: UTN122" required />
+
+        <label>Medio de cultivo</label>
+        <input name="medio_cultivo" placeholder="Ej: YPD" required />
+
+        <label>Ubicación en refrigerador (-80)</label>
+        <input name="ubicacion_refrigerador" placeholder="Ej: Congelador A / Nivel 2 / Rack 3 / B5" />
+
+        <button type="submit">Guardar</button>
+    </form>
+</body>
+
+</html>
