@@ -1,0 +1,35 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Base de datos
+data.db
+*.db
+
+# Archivos generados (barcodes)
+app/static/barcodes/*.png
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Archivos de entorno
+.env
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Alembic cache
+alembic/__pycache__/
