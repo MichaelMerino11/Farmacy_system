@@ -62,6 +62,12 @@ def crear_muestra(
     db.add(muestra)
     db.commit()
     db.refresh(muestra)
+
+    os.makedirs("app/static/barcodes", exist_ok=True)
+
+    code128 = barcode.get("code128", muestra.codigo_barra, writer=ImageWriter())
+    code128.save(f"app/static/barcodes/{muestra.codigo_barra}")
+
     db.close()
 
     return RedirectResponse(url=f"/muestras/{muestra.id}", status_code=303)
@@ -244,7 +250,24 @@ def imprimir_raw(muestra_id: int):
 
     data += b'\n\n\n' 
 
-    with open("/dev/usb/lp2", "wb") as printer:
+    with open("/dev/usb/lp0", "wb") as printer:
         printer.write(data)
 
     return {"status": "Impreso correctamente"}
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+
+    db = SessionLocal()
+
+    muestras = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
+
+    db.close()
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "muestras": muestras
+        }
+    )

@@ -34,7 +34,7 @@
         <div><span class="k">ID:</span> {{ muestra.id }}</div>
         <div><span class="k">Código de barras:</span> {{ muestra.codigo_barra }}</div>
         <div style="margin-top:20px;">
-            <img src="{{ muestra.barcode_image }}" width="300">
+            <img src="/static/barcodes/{{ muestra.codigo_barra }}.png" width="300">
         </div>
         <div style="margin-top:15px;">
             <a href="/muestras/{{ muestra.id }}/print-raw">
