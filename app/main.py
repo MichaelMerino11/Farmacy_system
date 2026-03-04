@@ -186,6 +186,11 @@ def scan_page(request: Request):
 
 @app.get("/buscar/{codigo}")
 def buscar_codigo(codigo: str):
+
+    # si el scanner manda solo 00005
+    if codigo.isdigit():
+        codigo = f"UTN-2026-{codigo.zfill(5)}"
+
     db = SessionLocal()
     muestra = db.query(Muestra).filter(Muestra.codigo_barra == codigo).first()
     db.close()
