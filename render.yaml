@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: utn-muestras
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: utn-muestras-db
+          property: connectionString
+
+databases:
+  - name: utn-muestras-db
+    databaseName: utn_muestras
+    user: admin
