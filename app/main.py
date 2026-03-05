@@ -1,29 +1,38 @@
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import os
+import io
+
 from sqlalchemy.orm import Session
 from .db import Base, engine, SessionLocal
 from .models import Muestra
+
 import barcode
 from barcode.writer import ImageWriter
-from PIL import Image
-import io
+
+from PIL import Image, ImageDraw
+from weasyprint import HTML
+
 
 app = FastAPI(title="UTN - Registro de Muestras")
 
+# crear carpetas necesarias
+os.makedirs("app/static", exist_ok=True)
+os.makedirs("app/static/barcodes", exist_ok=True)
+os.makedirs("app/static/etiquetas", exist_ok=True)
+
+# montar static
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
 Base.metadata.create_all(bind=engine)
 
-
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("form.html", {"request": request})
-
 
 @app.post("/muestras")
 def crear_muestra(
@@ -250,7 +259,9 @@ def imprimir_raw(muestra_id: int):
 
     data += b'\n\n\n' 
 
-    with open("/dev/usb/lp0", "wb") as printer:
+    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0") # CAMBIAR CUANDO YA SE TENGA = PRINTER_PATH=LPT1
+
+    with open(printer_path, "wb") as printer:
         printer.write(data)
 
     return {"status": "Impreso correctamente"}
