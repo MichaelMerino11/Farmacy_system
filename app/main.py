@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import os
 import io
+import platform
 
 from sqlalchemy.orm import Session
 from .db import Base, engine, SessionLocal
@@ -30,9 +31,43 @@ templates = Jinja2Templates(directory="app/templates")
 
 Base.metadata.create_all(bind=engine)
 
+
+def enviar_a_impresora(data: bytes):
+    """
+    Envía los bytes ESC/POS a la impresora.
+    Detecta automáticamente si está en Windows o Linux.
+    """
+    if platform.system() == "Windows":
+        try:
+            import win32print
+            # Usa la variable de entorno PRINTER_NAME si está definida,
+            # si no, usa la impresora predeterminada de Windows
+            printer_name = os.getenv("PRINTER_NAME", None)
+            if not printer_name:
+                printer_name = win32print.GetDefaultPrinter()
+
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                win32print.StartDocPrinter(handle, 1, ("Etiqueta UTN", None, "RAW"))
+                win32print.StartPagePrinter(handle)
+                win32print.WritePrinter(handle, data)
+                win32print.EndPagePrinter(handle)
+            finally:
+                win32print.EndDocPrinter(handle)
+                win32print.ClosePrinter(handle)
+        except ImportError:
+            raise RuntimeError("Falta instalar pywin32. Ejecuta: pip install pywin32")
+    else:
+        # Linux / Ubuntu
+        printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
+        with open(printer_path, "wb") as printer:
+            printer.write(data)
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("form.html", {"request": request})
+
 
 @app.post("/muestras")
 def crear_muestra(
@@ -67,7 +102,7 @@ def crear_muestra(
         ubicacion_refrigerador=ubicacion_refrigerador.strip() if ubicacion_refrigerador else None,
         codigo_barra=codigo_barra,
     )
-    
+
     db.add(muestra)
     db.commit()
     db.refresh(muestra)
@@ -93,6 +128,7 @@ def ver_muestra(muestra_id: int, request: Request):
 
     return templates.TemplateResponse("detalle.html", {"request": request, "muestra": muestra})
 
+
 @app.get("/muestras/{muestra_id}/print", response_class=HTMLResponse)
 def imprimir_muestra(muestra_id: int, request: Request):
     db = SessionLocal()
@@ -103,6 +139,7 @@ def imprimir_muestra(muestra_id: int, request: Request):
         return HTMLResponse("No existe la muestra", status_code=404)
 
     return templates.TemplateResponse("print.html", {"request": request, "muestra": muestra})
+
 
 @app.get("/muestras/{muestra_id}/pdf")
 def generar_pdf(muestra_id: int):
@@ -166,6 +203,7 @@ def generar_pdf(muestra_id: int):
 
     return Response(content=pdf, media_type="application/pdf")
 
+
 @app.get("/muestras/{muestra_id}/etiqueta")
 def generar_etiqueta_imagen(muestra_id: int):
     db = SessionLocal()
@@ -195,9 +233,11 @@ def generar_etiqueta_imagen(muestra_id: int):
 
     return RedirectResponse(url=f"/static/etiquetas/{muestra.codigo_barra}.png")
 
+
 @app.get("/scan", response_class=HTMLResponse)
 def scan_page(request: Request):
     return templates.TemplateResponse("scan.html", {"request": request})
+
 
 @app.get("/buscar/{codigo}")
 def buscar_codigo(codigo: str):
@@ -214,6 +254,7 @@ def buscar_codigo(codigo: str):
         return HTMLResponse("No existe la muestra", status_code=404)
 
     return RedirectResponse(url=f"/muestras/{muestra.id}", status_code=303)
+
 
 @app.get("/muestras/{muestra_id}/print-raw")
 def imprimir_raw(muestra_id: int):
@@ -258,40 +299,27 @@ def imprimir_raw(muestra_id: int):
     data += b'\x1d\x21\x00'  # tamaño normal
     data += codigo_texto.encode()
     data += b'\n'
-    
-    salto_dots = 50 
-    
+
+    # Salto calibrado para avanzar al inicio de la siguiente etiqueta
+    salto_dots = 50  # valor calibrado ✓ — no tocar
     data += b'\x1b\x4a' + bytes([salto_dots])
 
-    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
-
-    with open(printer_path, "wb") as printer:
-        printer.write(data)
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
 
     return {"status": "Impreso correctamente"}
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
 
-    db = SessionLocal()
-
-    muestras = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
-
-    db.close()
-
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "muestras": muestras
-        }
-    )
-    
 @app.get("/calibrar/{salto}")
 def calibrar(salto: int):
     """
-    Endpoint de calibración. Llama a /calibrar/52 (o el valor que quieras probar)
-    para imprimir 5 etiquetas seguidas con ese salto y ver si encajan.
+    Endpoint de calibración.
+    Llama a /calibrar/50 para imprimir 5 etiquetas seguidas y verificar el espaciado.
+    Si se van bajando: sube el valor. Si se van subiendo: bájalo.
     """
     data = b''
 
@@ -314,8 +342,29 @@ def calibrar(salto: int):
         data += b'\n'
         data += b'\x1b\x4a' + bytes([salto])
 
-    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
-    with open(printer_path, "wb") as printer:
-        printer.write(data)
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
 
     return {"status": f"Impreso con salto={salto}"}
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+
+    db = SessionLocal()
+
+    muestras = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
+
+    db.close()
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "muestras": muestras
+        }
+    )
