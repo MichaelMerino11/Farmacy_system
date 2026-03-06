@@ -230,36 +230,40 @@ def imprimir_raw(muestra_id: int):
 
     data = b''
 
-    # reset impresora
+    # Reset impresora
     data += b'\x1b\x40'
 
-    # centrar
-    data += b'\x1b\x61\x01'
+    # Alinear a la derecha
+    data += b'\x1b\x61\x02'
 
-    # altura barcode
-    data += b'\x1d\x68\x50'
+    # Altura del código de barras en dots
+    data += b'\x1d\x68\x28'  # 40 dots = 5mm
 
-    # ancho barcode
+    # Ancho de barras
     data += b'\x1d\x77\x02'
 
-    # no imprimir texto automático
+    # Sin texto automático bajo el barcode
     data += b'\x1d\x48\x00'
 
-    # imprimir barcode CODE128
+    # Barcode CODE128
     data += b'\x1d\x6b\x49'
     data += bytes([len(codigo_barcode)])
     data += codigo_barcode.encode()
 
-    # imprimir texto completo debajo
+    # Salto pequeño antes del texto
+    data += b'\x1b\x4a\x04'  # 4 dots
 
-    data += b'\x1b\x4d\x01'    # ESC M 1  → Fuente B (más chica)
-    data += b'\x1d\x21\x00'    # GS ! 0  → tamaño normal (sin agrandar)
-
+    # Texto del código completo
+    data += b'\x1b\x4d\x01'  # fuente pequeña
+    data += b'\x1d\x21\x00'  # tamaño normal
     data += codigo_texto.encode()
+    data += b'\n'
+    
+    salto_dots = 50 
+    
+    data += b'\x1b\x4a' + bytes([salto_dots])
 
-    data += b'\n\n\n' 
-
-    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0") # CAMBIAR CUANDO YA SE TENGA = PRINTER_PATH=LPT1
+    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
 
     with open(printer_path, "wb") as printer:
         printer.write(data)
@@ -282,3 +286,36 @@ def dashboard(request: Request):
             "muestras": muestras
         }
     )
+    
+@app.get("/calibrar/{salto}")
+def calibrar(salto: int):
+    """
+    Endpoint de calibración. Llama a /calibrar/52 (o el valor que quieras probar)
+    para imprimir 5 etiquetas seguidas con ese salto y ver si encajan.
+    """
+    data = b''
+
+    codigo_barcode = b'00001'
+    codigo_texto = b'UTN-2026-00001'
+
+    for _ in range(5):
+        data += b'\x1b\x40'
+        data += b'\x1b\x61\x02'
+        data += b'\x1d\x68\x28'
+        data += b'\x1d\x77\x02'
+        data += b'\x1d\x48\x00'
+        data += b'\x1d\x6b\x49'
+        data += bytes([len(codigo_barcode)])
+        data += codigo_barcode
+        data += b'\x1b\x4a\x04'
+        data += b'\x1b\x4d\x01'
+        data += b'\x1d\x21\x00'
+        data += codigo_texto
+        data += b'\n'
+        data += b'\x1b\x4a' + bytes([salto])
+
+    printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
+    with open(printer_path, "wb") as printer:
+        printer.write(data)
+
+    return {"status": f"Impreso con salto={salto}"}
