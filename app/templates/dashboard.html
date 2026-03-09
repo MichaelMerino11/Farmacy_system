@@ -1,126 +1,1215 @@
 <!doctype html>
-<html>
+<html lang="es">
 
 <head>
-
     <meta charset="utf-8" />
-    <title>Dashboard de Muestras</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — UTN · Laboratorio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg: #f4f6fb;
+            --white: #ffffff;
+            --surface: #eef1f8;
+            --border: #dde3f0;
+            --blue: #2563eb;
+            --blue-light: #eff4ff;
+            --blue-mid: #bfcfff;
+            --teal: #0891b2;
+            --teal-light: #ecfeff;
+            --green: #059669;
+            --green-light: #ecfdf5;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --amber: #d97706;
+            --amber-light: #fffbeb;
+            --text: #1e293b;
+            --text-mid: #475569;
+            --text-dim: #94a3b8;
+            --font: 'Plus Jakarta Sans', sans-serif;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+            --t: 0.2s ease;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial;
-            margin: 30px;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Topbar */
+        .topbar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--t);
+            color: var(--text-mid);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-family: var(--font);
+            background: transparent;
+        }
+
+        .nav-pill:hover {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .nav-pill.primary {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+        }
+
+        .nav-pill.primary:hover {
+            background: #1d4ed8;
+        }
+
+        /* Page */
+        .page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h2 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+
+        .page-header p {
+            font-size: 14px;
+            color: var(--text-mid);
+            margin-top: 4px;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            transition: var(--t);
+        }
+
+        .stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+        }
+
+        .stat .lbl {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .stat .val {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--blue);
+            line-height: 1.1;
+            margin: 4px 0 2px;
+        }
+
+        .stat .sub {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .stat.green .val {
+            color: var(--green);
+        }
+
+        .stat.amber .val {
+            color: var(--amber);
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        /* Tabs */
+        .tabs-row {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            padding: 9px 20px;
+            border-radius: 8px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+        }
+
+        .tab-btn.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search {
+            padding: 9px 14px;
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: var(--font);
+            color: var(--text);
+            width: 240px;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .search::placeholder {
+            color: var(--text-dim);
+        }
+
+        .search:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: var(--font);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--t);
+        }
+
+        .btn-blue {
+            background: var(--blue);
+            color: white;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, .2);
+        }
+
+        .btn-blue:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-filter {
+            padding: 8px 14px;
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-filter:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .btn-filter.active {
+            background: var(--blue-light);
+            border-color: var(--blue-mid);
+            color: var(--blue);
+        }
+
+        .filter-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            display: none;
+        }
+
+        .filter-dot.show {
+            display: inline-block;
+        }
+
+        .count {
+            font-size: 12px;
+            color: var(--text-dim);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Export action bar */
+        .export-action-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sel-info {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-mid);
+            margin-right: 4px;
+        }
+
+        .sel-info b {
+            color: var(--blue);
+        }
+
+        .sep {
+            width: 1px;
+            height: 22px;
+            background: var(--border);
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--t);
+            border: 1.5px solid;
+        }
+
+        .btn-export svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .btn-export.pdf {
+            background: var(--red-light);
+            color: var(--red);
+            border-color: #fca5a5;
+        }
+
+        .btn-export.pdf:hover:not(:disabled) {
+            background: var(--red);
+            color: white;
+            border-color: var(--red);
+        }
+
+        .btn-export.excel {
+            background: var(--green-light);
+            color: var(--green);
+            border-color: #a7f3d0;
+        }
+
+        .btn-export.excel:hover:not(:disabled) {
+            background: var(--green);
+            color: white;
+            border-color: var(--green);
+        }
+
+        .btn-export:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .btn-selall {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+        }
+
+        .btn-selall:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: var(--blue-light);
+        }
+
+        .btn-desel {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: var(--t);
+        }
+
+        .btn-desel:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: var(--red-light);
+        }
+
+        /* Filter strip */
+        .filter-strip {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+        }
+
+        .filter-strip.open {
+            display: grid;
+        }
+
+        .filter-strip label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .filter-strip input,
+        .filter-strip select {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-size: 13px;
+            font-family: var(--font);
+            color: var(--text);
+            background: var(--white);
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .filter-strip input:focus,
+        .filter-strip select:focus {
+            border-color: var(--blue);
+        }
+
+        .filter-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 8px;
+            padding-top: 4px;
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: var(--font);
+            transition: var(--t);
+            border: 1.5px solid;
+        }
+
+        .btn-sm.apply {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+
+        .btn-sm.apply:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-sm.clear {
+            background: transparent;
+            color: var(--text-mid);
+            border-color: var(--border);
+        }
+
+        .btn-sm.clear:hover {
+            background: var(--surface);
+        }
+
+        /* Table */
+        .table-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
         }
 
         table {
             border-collapse: collapse;
             width: 100%;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         th {
-            background: #f5f5f5;
+            background: var(--surface);
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border);
         }
 
-        tr:hover {
-            background: #fafafa;
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
         }
 
-        .search {
-            margin-bottom: 15px;
+        th.sortable:hover {
+            color: var(--blue);
         }
 
-        input {
-            padding: 8px;
-            width: 250px;
+        th.sorted {
+            color: var(--blue);
+        }
+
+        th .sort-arrow {
+            margin-left: 3px;
+            opacity: .4;
+            font-size: 10px;
+        }
+
+        th.sorted .sort-arrow {
+            opacity: 1;
+        }
+
+        th.col-check,
+        td.col-check {
+            width: 36px;
+            text-align: center;
+            padding: 10px 8px;
+        }
+
+        input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: var(--blue);
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        tr.row-selected td {
+            background: var(--blue-light) !important;
+        }
+
+        .code {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--blue);
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-v {
+            background: var(--teal-light);
+            color: var(--teal);
+            border: 1px solid #a5f3fc;
+        }
+
+        .badge-h {
+            background: var(--amber-light);
+            color: var(--amber);
+            border: 1px solid #fde68a;
+        }
+
+        .act-btn {
+            padding: 4px 11px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--t);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-family: var(--font);
+            background: var(--white);
+            color: var(--text-mid);
+        }
+
+        .act-btn:hover {
+            background: var(--surface);
+        }
+
+        .act-btn.print {
+            background: var(--teal-light);
+            color: var(--teal);
+            border-color: #a5f3fc;
+        }
+
+        .act-btn.print:hover {
+            background: var(--teal);
+            color: white;
+        }
+
+        .act-btn.del {
+            background: var(--red-light);
+            color: var(--red);
+            border-color: #fca5a5;
+        }
+
+        .act-btn.del:hover {
+            background: var(--red);
+            color: white;
+        }
+
+        .empty-row td {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .footer a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .panel.active {
+            animation: fadeIn .25s ease both;
+        }
+
+        @media (max-width:768px) {
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+        }
+
+        @media (max-width:480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .search {
+                width: 100%;
+            }
         }
     </style>
-
 </head>
 
 <body>
 
-    <h2>Dashboard de muestras</h2>
+    <nav class="topbar">
+        <a href="/" class="brand">
+            <img src="/media/utn_logo.png" alt="UTN Laboratorio" class="brand-logo" />
+        </a>
+        <div class="topbar-nav">
+            <a href="/" class="nav-pill">Formulario</a>
+            <a href="/" class="nav-pill primary">Nueva muestra</a>
+        </div>
+    </nav>
 
-    <div class="search">
-        <input id="buscar" placeholder="Buscar código o especie..." />
+    <div class="page">
+
+        <div class="page-header">
+            <h2>Dashboard</h2>
+            <p>Registros del sistema de trazabilidad UTN</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat">
+                <div class="lbl">Total muestras</div>
+                <div class="val">{{ muestras | length }}</div>
+                <div class="sub">registros activos</div>
+            </div>
+            <div class="stat green">
+                <div class="lbl">Total cajas</div>
+                <div class="val">{{ cajas | length }}</div>
+                <div class="sub">en sistema</div>
+            </div>
+            <div class="stat">
+                <div class="lbl">Último registro</div>
+                <div class="val" style="font-size:17px;margin-top:7px;">
+                    {% if muestras %}{{ muestras[0].created_at.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+                </div>
+                <div class="sub">muestra más reciente</div>
+            </div>
+            <div class="stat amber">
+                <div class="lbl">Estado</div>
+                <div class="val">Activo</div>
+                <div class="sub">base de datos local</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-row">
+            <button class="tab-btn active" id="tab-m" onclick="switchTab('m',this)">Muestras ({{ muestras|length
+                }})</button>
+            <button class="tab-btn" id="tab-c" onclick="switchTab('c',this)">Cajas ({{ cajas|length }})</button>
+        </div>
+
+        <!-- MUESTRAS -->
+        <div class="panel active" id="panel-m">
+            <div class="toolbar">
+                <input class="search" id="buscar-m" placeholder="Buscar código, especie, caja..."
+                    oninput="buscar('m')" />
+                <button class="btn-filter" id="filterbtn-m" onclick="toggleFiltros('m')">
+                    Filtros <span class="filter-dot" id="fdot-m"></span>
+                </button>
+                <a href="/" class="btn btn-blue">Nueva muestra</a>
+                <span class="count" id="cnt-m">{{ muestras|length }} registros</span>
+            </div>
+
+            <div class="filter-strip" id="filters-m">
+                <div>
+                    <label>Fecha desde</label>
+                    <input type="date" id="fm-desde" />
+                </div>
+                <div>
+                    <label>Fecha hasta</label>
+                    <input type="date" id="fm-hasta" />
+                </div>
+                <div>
+                    <label>Especie</label>
+                    <input type="text" id="fm-especie" placeholder="Ej: Lev5" />
+                </div>
+                <div>
+                    <label>Medio cultivo</label>
+                    <input type="text" id="fm-medio" placeholder="Ej: YPD" />
+                </div>
+                <div>
+                    <label>Nivel</label>
+                    <input type="text" id="fm-nivel" placeholder="Ej: PISO 1" />
+                </div>
+                <div>
+                    <label>N° caja</label>
+                    <input type="text" id="fm-caja" placeholder="Ej: Caja 1 2024" />
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-sm apply" onclick="aplicarFiltros('m')">Aplicar filtros</button>
+                    <button class="btn-sm clear" onclick="limpiarFiltros('m')">Limpiar</button>
+                </div>
+            </div>
+
+            <div class="export-action-bar">
+                <span class="sel-info" id="sel-info-m">Selecciona filas para exportar — o usa <b>Seleccionar
+                        todo</b></span>
+                <div class="sep"></div>
+                <button class="btn-selall" onclick="seleccionarTodo('m')">Seleccionar todo</button>
+                <button class="btn-desel" onclick="deseleccionar('m')">Quitar selección</button>
+                <div class="sep"></div>
+                <button class="btn-export pdf" id="exp-pdf-m" disabled onclick="exportarSeleccion('m','pdf')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <path d="M14 2v6h6M9 13h1.5a1.5 1.5 0 000-3H9v6m7-3h-2v6m-3-3h2" />
+                    </svg>
+                    Exportar PDF
+                </button>
+                <button class="btn-export excel" id="exp-xls-m" disabled onclick="exportarSeleccion('m','excel')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <path d="M14 2v6h6M8 13l2 4 2-4M12 13v4" />
+                    </svg>
+                    Exportar Excel
+                </button>
+            </div>
+
+            <div class="table-card">
+                <div class="table-wrap">
+                    <table id="tabla-m">
+                        <thead>
+                            <tr>
+                                <th class="col-check">
+                                    <input type="checkbox" id="chk-all-m" title="Seleccionar todo"
+                                        onchange="toggleTodo('m', this.checked)" />
+                                </th>
+                                <th class="sortable" onclick="sortTable('tabla-m',1)">ID <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',2)">Código <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',3)">Especie <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',4)">Caja <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',5)">Tubo <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',6)">Réplica <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',7)">Nivel <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-m',8)">Medio <span
+                                        class="sort-arrow">↕</span></th>
+                                <th>CCMBIOGEM</th>
+                                <th>Ubicación</th>
+                                <th class="sortable" onclick="sortTable('tabla-m',11)">Fecha <span
+                                        class="sort-arrow">↕</span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in muestras %}
+                            <tr data-id="{{ m.id }}" data-especie="{{ m.codigo_utn_especie }}"
+                                data-medio="{{ m.medio_cultivo }}" data-nivel="{{ m.nivel }}"
+                                data-caja="{{ m.numero_caja }}" data-fecha="{{ m.created_at.strftime('%Y-%m-%d') }}">
+                                <td class="col-check">
+                                    <input type="checkbox" class="row-chk" data-tab="m" onchange="onRowCheck('m')" />
+                                </td>
+                                <td style="color:var(--text-dim);font-size:12px;">#{{ m.id }}</td>
+                                <td class="code">{{ m.codigo_barra }}</td>
+                                <td>{{ m.codigo_utn_especie }}</td>
+                                <td>{{ m.numero_caja }}</td>
+                                <td style="text-align:center;">{{ m.numero_tubo_en_caja }}</td>
+                                <td style="text-align:center;">{{ m.numero_replica }}</td>
+                                <td>{{ m.nivel }}</td>
+                                <td>{{ m.medio_cultivo }}</td>
+                                <td style="font-size:12px;">{{ m.numero_muestra_ccmbi_ogem }}</td>
+                                <td
+                                    style="font-size:12px;color:var(--text-mid);max-width:180px;overflow:hidden;text-overflow:ellipsis;">
+                                    {{ m.ubicacion_refrigerador or "—" }}</td>
+                                <td style="font-size:12px;color:var(--text-dim);">{{ m.created_at.strftime('%Y-%m-%d')
+                                    }}</td>
+                                <td>
+                                    <button class="act-btn print" data-mid="{{ m.id }}">Imprimir</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not muestras %}
+                            <tr class="empty-row">
+                                <td colspan="13">No hay muestras registradas aún.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAJAS -->
+        <div class="panel" id="panel-c">
+            <div class="toolbar">
+                <input class="search" id="buscar-c" placeholder="Buscar nombre, posición..." oninput="buscar('c')" />
+                <a href="/" class="btn btn-blue" onclick="irCajas(event)">Nueva caja</a>
+                <span class="count" id="cnt-c">{{ cajas|length }} registros</span>
+            </div>
+
+            <div class="export-action-bar">
+                <span class="sel-info" id="sel-info-c">Selecciona filas para exportar — o usa <b>Seleccionar
+                        todo</b></span>
+                <div class="sep"></div>
+                <button class="btn-selall" onclick="seleccionarTodo('c')">Seleccionar todo</button>
+                <button class="btn-desel" onclick="deseleccionar('c')">Quitar selección</button>
+                <div class="sep"></div>
+                <button class="btn-export pdf" id="exp-pdf-c" disabled onclick="exportarSeleccion('c','pdf')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <path d="M14 2v6h6M9 13h1.5a1.5 1.5 0 000-3H9v6m7-3h-2v6m-3-3h2" />
+                    </svg>
+                    Exportar PDF
+                </button>
+                <button class="btn-export excel" id="exp-xls-c" disabled onclick="exportarSeleccion('c','excel')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <path d="M14 2v6h6M8 13l2 4 2-4M12 13v4" />
+                    </svg>
+                    Exportar Excel
+                </button>
+            </div>
+
+            <div class="table-card">
+                <div class="table-wrap">
+                    <table id="tabla-c">
+                        <thead>
+                            <tr>
+                                <th class="col-check">
+                                    <input type="checkbox" id="chk-all-c" title="Seleccionar todo"
+                                        onchange="toggleTodo('c', this.checked)" />
+                                </th>
+                                <th class="sortable" onclick="sortTable('tabla-c',1)">ID <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',2)">Congelador <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',3)">Posición <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',4)">Nombre <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',5)">Fecha <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',6)">Registrado <span
+                                        class="sort-arrow">↕</span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in cajas %}
+                            <tr data-id="{{ c.id }}" data-fecha="{{ c.fecha }}">
+                                <td class="col-check">
+                                    <input type="checkbox" class="row-chk" data-tab="c" onchange="onRowCheck('c')" />
+                                </td>
+                                <td style="color:var(--text-dim);font-size:12px;">#{{ c.id }}</td>
+                                <td>
+                                    {% if c.congelador == 1 %}
+                                    <span class="badge badge-v">Vertical</span>
+                                    {% else %}
+                                    <span class="badge badge-h">Horizontal</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:center;font-weight:700;">{{ c.posicion }}</td>
+                                <td>{{ c.nombre }}</td>
+                                <td style="font-size:12px;">{{ c.fecha }}</td>
+                                <td style="font-size:12px;color:var(--text-dim);">{{ c.created_at.strftime('%Y-%m-%d')
+                                    }}</td>
+                                <td>
+                                    <a href="/cajas/{{ c.id }}/eliminar" class="act-btn del"
+                                        onclick="return confirm('Eliminar la caja #{{ c.id }}?')">Eliminar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not cajas %}
+                            <tr class="empty-row">
+                                <td colspan="8">No hay cajas registradas aún.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <table id="tabla">
-
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Código</th>
-                <th>Especie</th>
-                <th>Caja</th>
-                <th>Tubo</th>
-                <th>Nivel</th>
-                <th>Fecha</th>
-                <th>Ver</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-            {% for m in muestras %}
-
-            <tr>
-
-                <td>{{ m.id }}</td>
-
-                <td>{{ m.codigo_barra }}</td>
-
-                <td>{{ m.codigo_utn_especie }}</td>
-
-                <td>{{ m.numero_caja }}</td>
-
-                <td>{{ m.numero_tubo_en_caja }}</td>
-
-                <td>{{ m.nivel }}</td>
-
-                <td>{{ m.created_at }}</td>
-
-                <td>
-                    <a href="/muestras/{{ m.id }}">abrir</a>
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
+    <div class="footer">
+        Desarrollado por <a href="mailto:info@maintronic.com.ec">Maintronic</a>
+        &nbsp;·&nbsp; (593) 02 266 6256 &nbsp;·&nbsp; 09 979 6375
+    </div>
 
     <script>
+        // ── Tabs ──────────────────────────────────────────────────────────────────────
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+            btn.classList.add('active')
+            document.getElementById('panel-' + name).classList.add('active')
+        }
 
-        const input = document.getElementById("buscar")
-
-        input.addEventListener("keyup", function () {
-
-            const filtro = input.value.toLowerCase()
-
-            const filas = document.querySelectorAll("#tabla tbody tr")
-
-            filas.forEach(f => {
-
-                const texto = f.innerText.toLowerCase()
-
-                f.style.display = texto.includes(filtro) ? "" : "none"
-
-            })
-
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search)
+            if (params.get('tab') === 'cajas') switchTab('c', document.getElementById('tab-c'))
         })
 
-    </script>
+        // ── Búsqueda ──────────────────────────────────────────────────────────────────
+        function buscar(tab) {
+            const texto = document.getElementById(`buscar-${tab}`).value.toLowerCase()
+            const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
+            let v = 0
+            rows.forEach(r => {
+                const match = r.innerText.toLowerCase().includes(texto)
+                r.style.display = match ? '' : 'none'
+                if (match) v++
+            })
+            document.getElementById(`cnt-${tab}`).textContent = `${v} registro(s)`
+            actualizarSelInfo(tab)
+        }
 
+        // ── Filter strip ──────────────────────────────────────────────────────────────
+        function toggleFiltros(tab) {
+            document.getElementById(`filters-${tab}`).classList.toggle('open')
+            document.getElementById(`filterbtn-${tab}`).classList.toggle('active')
+        }
+
+        function aplicarFiltros(tab) {
+            const desde = document.getElementById('fm-desde').value
+            const hasta = document.getElementById('fm-hasta').value
+            const especie = document.getElementById('fm-especie').value.toLowerCase()
+            const medio = document.getElementById('fm-medio').value.toLowerCase()
+            const nivel = document.getElementById('fm-nivel').value.toLowerCase()
+            const caja = document.getElementById('fm-caja').value.toLowerCase()
+            const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
+            let v = 0
+            rows.forEach(r => {
+                let show = true
+                if (desde && (r.dataset.fecha || '') < desde) show = false
+                if (hasta && (r.dataset.fecha || '') > hasta) show = false
+                if (especie && !(r.dataset.especie || '').toLowerCase().includes(especie)) show = false
+                if (medio && !(r.dataset.medio || '').toLowerCase().includes(medio)) show = false
+                if (nivel && !(r.dataset.nivel || '').toLowerCase().includes(nivel)) show = false
+                if (caja && !(r.dataset.caja || '').toLowerCase().includes(caja)) show = false
+                r.style.display = show ? '' : 'none'
+                if (show) v++
+            })
+            document.getElementById(`cnt-${tab}`).textContent = `${v} registro(s)`
+            const hay = desde || hasta || especie || medio || nivel || caja
+            document.getElementById('fdot-m').classList.toggle('show', !!hay)
+            actualizarSelInfo(tab)
+        }
+
+        function limpiarFiltros(tab) {
+            ;['desde', 'hasta', 'especie', 'medio', 'nivel', 'caja'].forEach(id => {
+                const el = document.getElementById('fm-' + id)
+                if (el) el.value = ''
+            })
+            aplicarFiltros(tab)
+            document.getElementById('fdot-m').classList.remove('show')
+        }
+
+        // ── Sort ──────────────────────────────────────────────────────────────────────
+        const sortState = {}
+
+        function sortTable(tableId, col) {
+            const tbody = document.querySelector(`#${tableId} tbody`)
+            const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'))
+            const key = tableId + col
+            sortState[key] = !sortState[key]
+            const asc = sortState[key]
+            rows.sort((a, b) => {
+                const va = a.cells[col]?.innerText.trim() || ''
+                const vb = b.cells[col]?.innerText.trim() || ''
+                const na = parseFloat(va.replace(/[^0-9.\-]/g, ''))
+                const nb = parseFloat(vb.replace(/[^0-9.\-]/g, ''))
+                if (!isNaN(na) && !isNaN(nb)) return asc ? na - nb : nb - na
+                return asc ? va.localeCompare(vb) : vb.localeCompare(va)
+            })
+            rows.forEach(r => tbody.appendChild(r))
+            document.querySelectorAll(`#${tableId} th`).forEach((th, i) => {
+                th.classList.toggle('sorted', i === col)
+                const arrow = th.querySelector('.sort-arrow')
+                if (arrow) arrow.textContent = i === col ? (asc ? '↑' : '↓') : '↕'
+            })
+        }
+
+        // ── Checkbox / selección ──────────────────────────────────────────────────────
+        function toggleTodo(tab, checked) {
+            document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`).forEach(r => {
+                if (r.style.display === 'none') return
+                const chk = r.querySelector('.row-chk')
+                if (chk) chk.checked = checked
+                r.classList.toggle('row-selected', checked)
+            })
+            actualizarSelInfo(tab)
+        }
+
+        function onRowCheck(tab) {
+            const visibles = Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`))
+                .filter(r => r.style.display !== 'none')
+            const allChecked = visibles.every(r => r.querySelector('.row-chk')?.checked)
+            const chkAll = document.getElementById(`chk-all-${tab}`)
+            if (chkAll) chkAll.checked = allChecked
+            visibles.forEach(r => r.classList.toggle('row-selected', r.querySelector('.row-chk')?.checked || false))
+            actualizarSelInfo(tab)
+        }
+
+        function seleccionarTodo(tab) {
+            document.getElementById(`chk-all-${tab}`).checked = true
+            toggleTodo(tab, true)
+        }
+
+        function deseleccionar(tab) {
+            document.getElementById(`chk-all-${tab}`).checked = false
+            toggleTodo(tab, false)
+        }
+
+        function getSeleccionados(tab) {
+            return Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr.row-selected`))
+                .map(r => r.dataset.id)
+        }
+
+        function actualizarSelInfo(tab) {
+            const ids = getSeleccionados(tab)
+            const n = ids.length
+            const info = document.getElementById(`sel-info-${tab}`)
+            const pdf = document.getElementById(`exp-pdf-${tab}`)
+            const xls = document.getElementById(`exp-xls-${tab}`)
+            if (n === 0) {
+                info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`
+                pdf.disabled = true
+                xls.disabled = true
+            } else {
+                info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`
+                pdf.disabled = false
+                xls.disabled = false
+            }
+        }
+
+        // ── Exportar ──────────────────────────────────────────────────────────────────
+        function exportarSeleccion(tab, fmt) {
+            const ids = getSeleccionados(tab)
+            if (!ids.length) return
+            const scope = tab === 'm' ? 'muestras' : 'cajas'
+            const p = new URLSearchParams({ fmt, scope, ids: ids.join(',') })
+            window.location.href = `/exportar?${p.toString()}`
+        }
+
+        // ── Imprimir desde tabla ──────────────────────────────────────────────────────
+        document.addEventListener('click', async function (e) {
+            const btn = e.target.closest('.act-btn.print[data-mid]')
+            if (!btn) return
+            e.preventDefault()
+            const id = btn.dataset.mid
+            const orig = btn.textContent
+            btn.textContent = 'Enviando...'; btn.disabled = true
+            const res = await fetch(`/muestras/${id}/print-raw`)
+            const data = await res.json()
+            btn.textContent = data.status === 'ok' ? 'Enviado' : 'Error'
+            btn.disabled = false
+            setTimeout(() => { btn.textContent = orig }, 2500)
+        })
+
+        // ── Ir a tab cajas en formulario ──────────────────────────────────────────────
+        function irCajas(e) {
+            e.preventDefault()
+            sessionStorage.setItem('openTab', 'cajas')
+            window.location.href = '/'
+        }
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTN · Laboratorio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --white: #ffffff;
+            --surface: #eef1f8;
+            --border: #dde3f0;
+            --blue: #2563eb;
+            --blue-light: #eff4ff;
+            --blue-mid: #bfcfff;
+            --teal: #0891b2;
+            --teal-light: #ecfeff;
+            --green: #059669;
+            --green-light: #ecfdf5;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --text: #1e293b;
+            --text-mid: #475569;
+            --text-dim: #94a3b8;
+            --font: 'Plus Jakarta Sans', sans-serif;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+            --t: 0.2s ease;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Topbar */
+        .topbar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .topbar-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--t);
+            color: var(--text-mid);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-family: var(--font);
+            background: transparent;
+        }
+
+        .nav-pill:hover {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .nav-pill.primary {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+        }
+
+        .nav-pill.primary:hover {
+            background: #1d4ed8;
+        }
+
+        /* Page */
+        .page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -.02em;
+        }
+
+        .page-header p {
+            font-size: 14px;
+            color: var(--text-mid);
+            margin-top: 4px;
+        }
+
+        /* Tabs */
+        .tabs-row {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 9px 20px;
+            border-radius: 8px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+        }
+
+        .tab-btn.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Card */
+        .card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 18px 24px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .card-header p {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-mid);
+        }
+
+        input,
+        select {
+            padding: 9px 13px;
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--font);
+            color: var(--text);
+            width: 100%;
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input::placeholder {
+            color: var(--text-dim);
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+        }
+
+        input.err {
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, .08);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 13px center;
+            padding-right: 34px;
+            cursor: pointer;
+        }
+
+        .error-msg {
+            font-size: 11px;
+            color: var(--red);
+            display: none;
+            font-weight: 600;
+        }
+
+        .global-error {
+            background: var(--red-light);
+            border: 1px solid #fca5a5;
+            color: var(--red);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .global-error.show {
+            display: block;
+        }
+
+        .ubicacion-preview {
+            background: var(--blue-light);
+            border: 1.5px solid var(--blue-mid);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--blue);
+            font-weight: 600;
+            min-height: 40px;
+        }
+
+        .ubicacion-preview.empty {
+            background: var(--surface);
+            border-color: var(--border);
+            color: var(--text-dim);
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .form-actions {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            padding: 10px 28px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--t);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: none;
+        }
+
+        .btn-primary:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-ghost {
+            padding: 10px 18px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--t);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: var(--blue-light);
+        }
+
+        /* Detail panel */
+        .detail-panel {
+            display: none;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .detail-panel.show {
+            display: block;
+            animation: fadeUp .4s ease both;
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, var(--green-light), #d1fae5);
+            border-bottom: 1px solid #a7f3d0;
+            padding: 16px 24px;
+        }
+
+        .detail-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        .detail-header p {
+            font-size: 12px;
+            color: #047857;
+            margin-top: 2px;
+        }
+
+        .detail-body {
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 24px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 20px;
+        }
+
+        .detail-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .detail-field .lbl {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        .detail-field .val {
+            font-size: 14px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .detail-field .val.code {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--blue);
+            font-size: 15px;
+        }
+
+        .barcode-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .barcode-col img {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            padding: 6px;
+        }
+
+        .barcode-col span {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .detail-actions {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn-teal {
+            padding: 9px 20px;
+            background: var(--teal);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--t);
+            font-family: var(--font);
+        }
+
+        .btn-teal:hover {
+            background: #0e7490;
+            transform: translateY(-1px);
+        }
+
+        .btn-teal:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .print-status {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .print-status.ok {
+            display: flex;
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .print-status.err {
+            display: flex;
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        /* ── Scan modal ─────────────────────────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
+            padding: 32px;
+            width: 440px;
+            max-width: 92vw;
+            animation: popIn .3s ease both;
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .modal p {
+            font-size: 13px;
+            color: var(--text-mid);
+            margin-bottom: 20px;
+        }
+
+        .scan-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid var(--blue);
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--text);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .1);
+            background: var(--blue-light);
+        }
+
+        /* Resultado: contenedor */
+        .scan-result {
+            margin-top: 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .scan-result.found {
+            display: block;
+            border: 1px solid #a7f3d0;
+            color: var(--green);
+        }
+
+        .scan-result.notfound {
+            display: block;
+            background: var(--red-light);
+            border: 1px solid #fca5a5;
+            color: var(--red);
+            padding: 14px 16px;
+        }
+
+        /* Tabs dentro del resultado */
+        .r-tabs {
+            display: flex;
+            background: #d1fae5;
+            border-bottom: 1px solid #a7f3d0;
+        }
+
+        .r-tab {
+            flex: 1;
+            padding: 9px 0;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-family: var(--font);
+            color: #047857;
+            transition: var(--t);
+            letter-spacing: .02em;
+            border-bottom: 2px solid transparent;
+        }
+
+        .r-tab.active {
+            background: white;
+            color: var(--green);
+            border-bottom: 2px solid var(--green);
+            margin-bottom: -1px;
+        }
+
+        .r-tab:hover:not(.active) {
+            background: #bbf7d0;
+        }
+
+        /* Vista datos */
+        .r-view {
+            display: none;
+            padding: 14px 16px;
+            background: var(--green-light);
+        }
+
+        .r-view.active {
+            display: block;
+        }
+
+        .r-code {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .r-detail {
+            font-size: 12px;
+            line-height: 1.9;
+        }
+
+        /* Vista código de barras */
+        .r-view-barcode {
+            display: none;
+            padding: 24px 16px 16px;
+            background: white;
+            text-align: center;
+        }
+
+        .r-view-barcode.active {
+            display: block;
+        }
+
+        .r-view-barcode img {
+            width: 100%;
+            max-width: 340px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .r-bc-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 10px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 100%;
+            margin-top: 14px;
+            padding: 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+        }
+
+        .modal-close:hover {
+            background: var(--surface);
+        }
+
+        /* Anims */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 0 0 28px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .footer a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        @media (max-width:640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full {
+                grid-column: 1;
+            }
+
+            .detail-body {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-body {
+                padding: 16px;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .page {
+                padding: 20px 14px 48px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="topbar">
+        <a href="/" class="brand">
+            <img src="/media/utn_logo.png" alt="UTN Laboratorio" class="brand-logo" />
+        </a>
+        <div class="topbar-nav">
+            <a href="/dashboard" class="nav-pill">Dashboard</a>
+            <button class="nav-pill primary" onclick="abrirScan()">Escanear</button>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="page-header">
+            <h2>Nuevo registro</h2>
+            <p>Ingresa los datos de la muestra o caja a registrar</p>
+        </div>
+
+        <div class="tabs-row">
+            <button class="tab-btn active" id="tab-muestras" onclick="switchTab('muestras',this)">Muestra</button>
+            <button class="tab-btn" id="tab-cajas" onclick="switchTab('cajas',this)">Caja</button>
+        </div>
+
+        <!-- PANEL MUESTRAS -->
+        <div class="panel active" id="panel-muestras">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Datos de la muestra</h3>
+                    <p>Todos los campos son obligatorios</p>
+                </div>
+                <div class="card-body">
+                    <div class="global-error" id="error-muestras"></div>
+                    <form id="form-muestras" method="post" action="/muestras" novalidate>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="nivel">Nivel</label>
+                                <input id="nivel" name="nivel" placeholder="Ej: PISO 1" autocomplete="off" required />
+                                <div class="error-msg" id="err-nivel"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="numero_caja">Número de caja</label>
+                                <input id="numero_caja" name="numero_caja" placeholder="Ej: Caja 1 2024"
+                                    autocomplete="off" required />
+                                <div class="error-msg" id="err-numero_caja"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="codigo_utn_especie">Código UTN especie</label>
+                                <input id="codigo_utn_especie" name="codigo_utn_especie" placeholder="Ej: Lev5"
+                                    autocomplete="off" required />
+                                <div class="error-msg" id="err-codigo_utn_especie"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="medio_cultivo">Medio de cultivo</label>
+                                <input id="medio_cultivo" name="medio_cultivo" placeholder="Ej: YPD" autocomplete="off"
+                                    required />
+                                <div class="error-msg" id="err-medio_cultivo"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="numero_replica">Número réplica</label>
+                                <input id="numero_replica" name="numero_replica" type="number" min="1"
+                                    placeholder="Ej: 1" required />
+                                <div class="error-msg" id="err-numero_replica"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="numero_tubo_en_caja">Tubo en caja</label>
+                                <input id="numero_tubo_en_caja" name="numero_tubo_en_caja" type="number" min="1"
+                                    placeholder="Ej: 3" required />
+                                <div class="error-msg" id="err-numero_tubo_en_caja"></div>
+                            </div>
+                            <div class="form-group full">
+                                <label for="numero_muestra_ccmbi_ogem">N° muestra colección CCMBIOGEM</label>
+                                <input id="numero_muestra_ccmbi_ogem" name="numero_muestra_ccmbi_ogem"
+                                    placeholder="Ej: UTN122" autocomplete="off" required />
+                                <div class="error-msg" id="err-numero_muestra_ccmbi_ogem"></div>
+                            </div>
+                            <div class="form-group full">
+                                <label>Ubicación refrigerador -80 — autogenerada</label>
+                                <div class="ubicacion-preview empty" id="ubi-preview">Complete los campos para ver la
+                                    ubicación...</div>
+                                <div class="hint">Calculada desde: Nivel / Caja / Réplica / Tubo</div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary" id="btn-guardar-m">Guardar muestra</button>
+                            <a href="/dashboard" class="btn-ghost">Ver Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Detalle inline -->
+            <div class="detail-panel" id="detail-panel">
+                <div class="detail-header">
+                    <h3>Muestra registrada exitosamente</h3>
+                    <p id="detail-subtitle">Codigo generado y listo para imprimir</p>
+                </div>
+                <div class="detail-body">
+                    <div class="detail-grid" id="detail-grid"></div>
+                    <div class="barcode-col">
+                        <img id="detail-barcode" src="" alt="Codigo de barras" />
+                        <span>Imagen del codigo</span>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button class="btn-teal" id="btn-imprimir" onclick="imprimirEtiqueta()">Imprimir etiqueta</button>
+                    <div class="print-status" id="print-status"></div>
+                    <button class="btn-ghost" style="margin-left:auto;" onclick="nuevoRegistro()">Nuevo
+                        registro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL CAJAS -->
+        <div class="panel" id="panel-cajas">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Datos de la caja</h3>
+                    <p>Registra una nueva caja en el sistema</p>
+                </div>
+                <div class="card-body">
+                    <div class="global-error" id="error-cajas"></div>
+                    <form id="form-cajas" method="post" action="/cajas" novalidate>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="congelador">Congelador</label>
+                                <select id="congelador" name="congelador" required>
+                                    <option value="">— Seleccione —</option>
+                                    <option value="1">1 — Vertical</option>
+                                    <option value="2">2 — Horizontal</option>
+                                </select>
+                                <div class="error-msg" id="err-congelador"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="posicion">Posición</label>
+                                <input id="posicion" name="posicion" type="number" min="1" placeholder="Ej: 3"
+                                    required />
+                                <div class="error-msg" id="err-posicion"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="fecha">Fecha</label>
+                                <input id="fecha" name="fecha" type="date" required />
+                                <div class="error-msg" id="err-fecha"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="nombre">Nombre</label>
+                                <input id="nombre" name="nombre" placeholder="Ej: Caja Levaduras 2024"
+                                    autocomplete="off" required />
+                                <div class="error-msg" id="err-nombre"></div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary" id="btn-guardar-c">Guardar caja</button>
+                            <a href="/dashboard" class="btn-ghost">Ver Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan modal -->
+    <div class="modal-overlay" id="scan-modal">
+        <div class="modal">
+            <h3>Escanear muestra</h3>
+            <p>Escanee el codigo de barras o escríbalo manualmente</p>
+            <input class="scan-input" id="scan-input" placeholder="UTN-2026-00001" autocomplete="off" />
+            <div class="scan-result" id="scan-result"></div>
+            <button class="modal-close" onclick="cerrarScan()">Cerrar</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Desarrollado por <a href="mailto:info@maintronic.com.ec">Maintronic</a>
+        &nbsp;·&nbsp; (593) 02 266 6256 &nbsp;·&nbsp; 09 979 6375
+    </div>
+
+    <script>
+        let currentMuestraId = null
+
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+            btn.classList.add('active')
+            document.getElementById('panel-' + name).classList.add('active')
+        }
+
+        window.addEventListener('load', () => {
+            const tab = sessionStorage.getItem('openTab')
+            if (tab) { sessionStorage.removeItem('openTab'); const b = document.getElementById('tab-' + tab); if (b) switchTab(tab, b) }
+            const params = new URLSearchParams(window.location.search)
+            const mid = params.get('muestra_id')
+            if (mid) mostrarDetalle(mid)
+        })
+
+            ;['nivel', 'numero_caja', 'numero_replica', 'numero_tubo_en_caja'].forEach(id =>
+                document.getElementById(id).addEventListener('input', () => {
+                    const n = document.getElementById('nivel').value.trim()
+                    const c = document.getElementById('numero_caja').value.trim()
+                    const r = document.getElementById('numero_replica').value.trim()
+                    const t = document.getElementById('numero_tubo_en_caja').value.trim()
+                    const el = document.getElementById('ubi-preview')
+                    if (n && c && r && t) { el.textContent = `Nivel ${n} / Caja ${c} / Réplica ${r} / Tubo ${t}`; el.classList.remove('empty') }
+                    else { el.textContent = 'Complete los campos para ver la ubicación...'; el.classList.add('empty') }
+                })
+            )
+
+        const patron = /^[\w\s\-\.\/áéíóúÁÉÍÓÚñÑ]+$/
+
+        function showErr(id, msg) {
+            const el = document.getElementById('err-' + id), inp = document.getElementById(id)
+            if (el) { el.textContent = msg; el.style.display = 'block' }
+            if (inp) inp.classList.add('err')
+        }
+
+        function clearErrors(fid) {
+            document.querySelectorAll(`#${fid} .error-msg`).forEach(e => { e.style.display = 'none'; e.textContent = '' })
+            document.querySelectorAll(`#${fid} input,#${fid} select`).forEach(e => e.classList.remove('err'))
+            const bid = fid === 'form-muestras' ? 'error-muestras' : 'error-cajas'
+            const b = document.getElementById(bid)
+            b.classList.remove('show'); b.textContent = ''; b.style.background = ''; b.style.borderColor = ''; b.style.color = ''
+        }
+
+        function validarMuestras() {
+            clearErrors('form-muestras'); let ok = true
+                ;[['nivel', 'Nivel'], ['numero_caja', 'N caja'], ['codigo_utn_especie', 'Código especie'],
+                ['medio_cultivo', 'Medio cultivo'], ['numero_muestra_ccmbi_ogem', 'N CCMBIOGEM']].forEach(([id, lbl]) => {
+                    const v = document.getElementById(id).value.trim()
+                    if (!v) { showErr(id, `"${lbl}" es obligatorio.`); ok = false }
+                    else if (!patron.test(v)) { showErr(id, 'Caracteres no permitidos.'); ok = false }
+                    else if (v.length > 100) { showErr(id, 'Excede 100 caracteres.'); ok = false }
+                })
+            const r = parseInt(document.getElementById('numero_replica').value)
+            if (!r || r < 1) { showErr('numero_replica', 'Debe ser mayor a 0.'); ok = false }
+            const t = parseInt(document.getElementById('numero_tubo_en_caja').value)
+            if (!t || t < 1) { showErr('numero_tubo_en_caja', 'Debe ser mayor a 0.'); ok = false }
+            return ok
+        }
+
+        function validarCajas() {
+            clearErrors('form-cajas'); let ok = true
+            if (!document.getElementById('congelador').value) { showErr('congelador', 'Seleccione uno.'); ok = false }
+            const p = parseInt(document.getElementById('posicion').value)
+            if (!p || p < 1) { showErr('posicion', 'Debe ser mayor a 0.'); ok = false }
+            if (!document.getElementById('fecha').value) { showErr('fecha', 'Obligatoria.'); ok = false }
+            const n = document.getElementById('nombre').value.trim()
+            if (!n) { showErr('nombre', 'Obligatorio.'); ok = false }
+            else if (!patron.test(n)) { showErr('nombre', 'Caracteres no permitidos.'); ok = false }
+            else if (n.length > 100) { showErr('nombre', 'Excede 100 caracteres.'); ok = false }
+            return ok
+        }
+
+        document.getElementById('form-muestras').addEventListener('submit', async e => {
+            e.preventDefault()
+            if (!validarMuestras()) return
+            const btn = document.getElementById('btn-guardar-m')
+            btn.textContent = 'Guardando...'; btn.disabled = true
+            const res = await fetch('/muestras', { method: 'POST', body: new FormData(e.target) })
+            if (res.redirected) {
+                const url = new URL(res.url)
+                const mid = url.searchParams.get('muestra_id')
+                if (mid) { await mostrarDetalle(mid); window.history.replaceState(null, '', `/?muestra_id=${mid}`) }
+                btn.textContent = 'Guardar muestra'; btn.disabled = false
+                return
+            }
+            btn.textContent = 'Guardar muestra'; btn.disabled = false
+            let msg = 'Error al guardar.'
+            try { const j = await res.json(); msg = j.detail || j.error || msg } catch { }
+            const b = document.getElementById('error-muestras')
+            b.textContent = 'Advertencia: ' + msg; b.classList.add('show')
+        })
+
+        document.getElementById('form-cajas').addEventListener('submit', async e => {
+            e.preventDefault()
+            if (!validarCajas()) return
+            const btn = document.getElementById('btn-guardar-c')
+            btn.textContent = 'Guardando...'; btn.disabled = true
+            const res = await fetch('/cajas', { method: 'POST', body: new FormData(e.target) })
+            btn.textContent = 'Guardar caja'; btn.disabled = false
+            if (res.redirected || res.ok) {
+                const b = document.getElementById('error-cajas')
+                b.style.background = 'var(--green-light)'; b.style.borderColor = '#a7f3d0'; b.style.color = 'var(--green)'
+                b.textContent = 'Caja registrada exitosamente.'; b.classList.add('show')
+                document.getElementById('form-cajas').reset()
+                setTimeout(() => b.classList.remove('show'), 3000)
+                return
+            }
+            let msg = 'Error al guardar.'
+            try { const j = await res.json(); msg = j.detail || j.error || msg } catch { }
+            const b = document.getElementById('error-cajas')
+            b.textContent = 'Advertencia: ' + msg; b.classList.add('show')
+        })
+
+        async function mostrarDetalle(id) {
+            currentMuestraId = id
+            const data = await fetch(`/muestras/${id}/json`).then(r => r.json())
+            document.getElementById('detail-subtitle').textContent = `Código: ${data.codigo_barra}`
+            document.getElementById('detail-barcode').src = data.barcode_url + '?t=' + Date.now()
+            const campos = [
+                ['Código de barras', data.codigo_barra, true],
+                ['Especie', data.codigo_utn_especie],
+                ['Nivel', data.nivel],
+                ['Caja', data.numero_caja],
+                ['Réplica', data.numero_replica],
+                ['Tubo en caja', data.numero_tubo_en_caja],
+                ['Medio de cultivo', data.medio_cultivo],
+                ['N CCMBIOGEM', data.numero_muestra_ccmbi_ogem],
+                ['Ubicación', data.ubicacion_refrigerador],
+                ['Registrado', data.created_at],
+            ]
+            document.getElementById('detail-grid').innerHTML = campos.map(([lbl, val, isCode]) =>
+                `<div class="detail-field"><span class="lbl">${lbl}</span><span class="val${isCode ? ' code' : ''}">${val}</span></div>`
+            ).join('')
+            document.getElementById('detail-panel').classList.add('show')
+            document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+
+        async function imprimirEtiqueta() {
+            if (!currentMuestraId) return
+            const btn = document.getElementById('btn-imprimir')
+            const status = document.getElementById('print-status')
+            btn.textContent = 'Imprimiendo...'; btn.disabled = true; status.className = 'print-status'
+            const res = await fetch(`/muestras/${currentMuestraId}/print-raw`)
+            const data = await res.json()
+            btn.textContent = 'Imprimir etiqueta'; btn.disabled = false
+            if (data.status === 'ok') { status.textContent = 'Etiqueta enviada correctamente'; status.className = 'print-status ok' }
+            else { status.textContent = data.error || 'Error al imprimir'; status.className = 'print-status err' }
+        }
+
+        function nuevoRegistro() {
+            currentMuestraId = null
+            document.getElementById('detail-panel').classList.remove('show')
+            document.getElementById('form-muestras').reset()
+            document.getElementById('ubi-preview').textContent = 'Complete los campos para ver la ubicación...'
+            document.getElementById('ubi-preview').classList.add('empty')
+            document.getElementById('print-status').className = 'print-status'
+            window.history.replaceState(null, '', '/')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+
+        // ── Scan modal ────────────────────────────────────────────────────────────────
+        function abrirScan() {
+            document.getElementById('scan-modal').classList.add('show')
+            document.getElementById('scan-result').className = 'scan-result'
+            document.getElementById('scan-result').innerHTML = ''
+            document.getElementById('scan-input').value = ''
+            setTimeout(() => document.getElementById('scan-input').focus(), 100)
+        }
+
+        function cerrarScan() {
+            document.getElementById('scan-modal').classList.remove('show')
+        }
+
+        document.getElementById('scan-modal').addEventListener('click', e => {
+            if (e.target === document.getElementById('scan-modal')) cerrarScan()
+        })
+
+        // Toggle entre vista datos y vista código de barras
+        function scanVista(vista) {
+            const tabs = document.querySelectorAll('.r-tab')
+            const vDatos = document.getElementById('r-view-datos')
+            const vBarcode = document.getElementById('r-view-barcode')
+            if (!vDatos || !vBarcode) return
+            tabs[0].classList.toggle('active', vista === 'datos')
+            tabs[1].classList.toggle('active', vista === 'barcode')
+            vDatos.classList.toggle('active', vista === 'datos')
+            vBarcode.classList.toggle('active', vista === 'barcode')
+        }
+
+        let scanTimer = null
+        document.getElementById('scan-input').addEventListener('input', e => {
+            clearTimeout(scanTimer)
+            const codigo = e.target.value.trim()
+            if (!codigo) return
+            scanTimer = setTimeout(async () => {
+                const res = await fetch(`/buscar/${encodeURIComponent(codigo)}`)
+                const el = document.getElementById('scan-result')
+                if (res.ok) {
+                    const d = await res.json()
+                    el.className = 'scan-result found'
+                    el.innerHTML = `
+                <div class="r-tabs">
+                    <button class="r-tab active" onclick="scanVista('datos')">Datos</button>
+                    <button class="r-tab"        onclick="scanVista('barcode')">Código de barras</button>
+                </div>
+                <div class="r-view active" id="r-view-datos">
+                    <div class="r-code">${d.codigo_barra}</div>
+                    <div class="r-detail">
+                        <b>Especie:</b> ${d.codigo_utn_especie}<br>
+                        <b>Caja:</b> ${d.numero_caja} &nbsp;&middot;&nbsp; <b>Tubo:</b> ${d.numero_tubo_en_caja}<br>
+                        <b>Ubicación:</b> ${d.ubicacion_refrigerador}<br>
+                        <b>Registrado:</b> ${d.created_at}
+                    </div>
+                </div>
+                <div class="r-view-barcode" id="r-view-barcode">
+                    <img src="${d.barcode_url}" alt="Código de barras" />
+                    <div class="r-bc-label">${d.codigo_barra}</div>
+                </div>`
+                } else {
+                    el.className = 'scan-result notfound'
+                    el.innerHTML = `<b>No encontrado:</b> "${codigo}"`
+                }
+                e.target.value = ''
+                setTimeout(() => e.target.focus(), 50)
+            }, 350)
+        })
+    </script>
+</body>
+
+</html>
