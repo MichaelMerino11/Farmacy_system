@@ -39,6 +39,16 @@ def calcular_ubicacion(nivel, numero_caja, numero_replica, numero_tubo_en_caja):
     return f"Nivel {nivel} / Caja {numero_caja} / Réplica {numero_replica} / Tubo {numero_tubo_en_caja}"
 
 
+def generar_codigo_caja(nombre, especie, seguimiento, identificacion_taxonomica, origen_muestra):
+    """Genera el código legible de la caja combinando los campos clave."""
+    partes = [nombre, f"Esp:{especie}", f"Seg:{seguimiento}"]
+    if identificacion_taxonomica:
+        partes.append(f"Tax:{identificacion_taxonomica}")
+    if origen_muestra:
+        partes.append(f"Orig:{origen_muestra}")
+    return " / ".join(partes)
+
+
 def validar_texto(valor, campo, max_len=100, patron=r"^[\w\s\-\.\/áéíóúÁÉÍÓÚñÑ]+$"):
     valor = valor.strip()
     if not valor:
@@ -124,7 +134,7 @@ def crear_muestra(
         db.close()
         raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
 
-    ultimo      = db.query(Muestra).order_by(Muestra.id.desc()).first()
+    ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     codigo_barra = f"UTN-2026-{str(nuevo_numero).zfill(5)}"
     ubicacion    = calcular_ubicacion(nivel, numero_caja, numero_replica, numero_tubo_en_caja)
@@ -195,18 +205,18 @@ def muestra_json(muestra_id: int):
     if not muestra:
         raise HTTPException(status_code=404, detail="No existe")
     return {
-        "id":                       muestra.id,
-        "codigo_barra":             muestra.codigo_barra,
-        "nivel":                    muestra.nivel,
-        "numero_caja":              muestra.numero_caja,
-        "codigo_utn_especie":       muestra.codigo_utn_especie,
-        "numero_replica":           muestra.numero_replica,
-        "numero_tubo_en_caja":      muestra.numero_tubo_en_caja,
-        "numero_muestra_ccmbi_ogem":muestra.numero_muestra_ccmbi_ogem,
-        "medio_cultivo":            muestra.medio_cultivo,
-        "ubicacion_refrigerador":   muestra.ubicacion_refrigerador or "—",
-        "created_at":               muestra.created_at.strftime("%Y-%m-%d %H:%M"),
-        "barcode_url":              f"/static/barcodes/{muestra.codigo_barra}.png",
+        "id":                        muestra.id,
+        "codigo_barra":              muestra.codigo_barra,
+        "nivel":                     muestra.nivel,
+        "numero_caja":               muestra.numero_caja,
+        "codigo_utn_especie":        muestra.codigo_utn_especie,
+        "numero_replica":            muestra.numero_replica,
+        "numero_tubo_en_caja":       muestra.numero_tubo_en_caja,
+        "numero_muestra_ccmbi_ogem": muestra.numero_muestra_ccmbi_ogem,
+        "medio_cultivo":             muestra.medio_cultivo,
+        "ubicacion_refrigerador":    muestra.ubicacion_refrigerador or "—",
+        "created_at":                muestra.created_at.strftime("%Y-%m-%d %H:%M"),
+        "barcode_url":               f"/static/barcodes/{muestra.codigo_barra}.png",
     }
 
 
@@ -218,16 +228,29 @@ def crear_caja(
     posicion: int = Form(...),
     fecha: str = Form(...),
     nombre: str = Form(...),
+    especie: str = Form(...),
+    seguimiento: str = Form(...),
+    identificacion_taxonomica: str = Form(""),
+    origen_muestra: str = Form(""),
 ):
     if congelador not in [1, 2]:
         raise HTTPException(status_code=422, detail="Congelador debe ser 1 (vertical) o 2 (horizontal).")
     if posicion < 1:
         raise HTTPException(status_code=422, detail="La posición debe ser mayor a 0.")
+    if especie not in ["SI", "NO"]:
+        raise HTTPException(status_code=422, detail="Especie debe ser SI o NO.")
+    if seguimiento not in ["SI", "NO"]:
+        raise HTTPException(status_code=422, detail="Seguimiento debe ser SI o NO.")
 
     nombre = validar_texto(nombre, "Nombre", max_len=100)
 
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
         raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
+
+    tax    = identificacion_taxonomica.strip()
+    origen = origen_muestra.strip()
+
+    codigo_caja = generar_codigo_caja(nombre, especie, seguimiento, tax or None, origen or None)
 
     db: Session = SessionLocal()
     existe = db.query(Caja).filter(Caja.congelador == congelador, Caja.posicion == posicion).first()
@@ -236,7 +259,17 @@ def crear_caja(
         tipo = "vertical" if congelador == 1 else "horizontal"
         raise HTTPException(status_code=422, detail=f"Ya existe una caja en el congelador {tipo} posición {posicion}.")
 
-    caja = Caja(congelador=congelador, posicion=posicion, fecha=fecha, nombre=nombre)
+    caja = Caja(
+        congelador=congelador,
+        posicion=posicion,
+        fecha=fecha,
+        nombre=nombre,
+        especie=especie,
+        seguimiento=seguimiento,
+        identificacion_taxonomica=tax or None,
+        origen_muestra=origen or None,
+        codigo_caja=codigo_caja,
+    )
     db.add(caja)
     db.commit()
     db.close()
@@ -268,18 +301,18 @@ def buscar_codigo(codigo: str):
     if not muestra:
         raise HTTPException(status_code=404, detail="Muestra no encontrada")
     return {
-        "id":                       muestra.id,
-        "codigo_barra":             muestra.codigo_barra,
-        "nivel":                    muestra.nivel,
-        "numero_caja":              muestra.numero_caja,
-        "codigo_utn_especie":       muestra.codigo_utn_especie,
-        "numero_replica":           muestra.numero_replica,
-        "numero_tubo_en_caja":      muestra.numero_tubo_en_caja,
-        "numero_muestra_ccmbi_ogem":muestra.numero_muestra_ccmbi_ogem,
-        "medio_cultivo":            muestra.medio_cultivo,
-        "ubicacion_refrigerador":   muestra.ubicacion_refrigerador or "—",
-        "created_at":               muestra.created_at.strftime("%Y-%m-%d %H:%M"),
-        "barcode_url":              f"/static/barcodes/{muestra.codigo_barra}.png",
+        "id":                        muestra.id,
+        "codigo_barra":              muestra.codigo_barra,
+        "nivel":                     muestra.nivel,
+        "numero_caja":               muestra.numero_caja,
+        "codigo_utn_especie":        muestra.codigo_utn_especie,
+        "numero_replica":            muestra.numero_replica,
+        "numero_tubo_en_caja":       muestra.numero_tubo_en_caja,
+        "numero_muestra_ccmbi_ogem": muestra.numero_muestra_ccmbi_ogem,
+        "medio_cultivo":             muestra.medio_cultivo,
+        "ubicacion_refrigerador":    muestra.ubicacion_refrigerador or "—",
+        "created_at":                muestra.created_at.strftime("%Y-%m-%d %H:%M"),
+        "barcode_url":               f"/static/barcodes/{muestra.codigo_barra}.png",
     }
 
 
@@ -289,7 +322,7 @@ def buscar_codigo(codigo: str):
 def exportar(
     fmt:   str = Query(...),
     scope: str = Query("muestras"),
-    ids:   str = Query(None),   # comma-separated IDs selected in the table
+    ids:   str = Query(None),
 ):
     db = SessionLocal()
     try:
@@ -307,13 +340,14 @@ def exportar(
     finally:
         db.close()
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_str      = datetime.now().strftime("%Y-%m-%d %H:%M")
     fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
 
     # ── PDF ────────────────────────────────────────────────────────────────────
     if fmt == "pdf":
         if scope == "muestras":
-            cabeceras = ["ID", "Código", "Especie", "Caja", "Tubo", "Réplica", "Nivel", "Medio", "CCMBIOGEM", "Ubicación", "Fecha"]
+            cabeceras = ["ID", "Código", "Especie", "Caja", "Tubo", "Réplica",
+                         "Nivel", "Medio", "CCMBIOGEM", "Ubicación", "Fecha"]
             filas = [
                 [f"#{m.id}", m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
                  m.numero_tubo_en_caja, m.numero_replica, m.nivel, m.medio_cultivo,
@@ -323,10 +357,16 @@ def exportar(
             ]
             titulo_seccion = "Registro de Muestras"
         else:
-            cabeceras = ["ID", "Congelador", "Posición", "Nombre", "Fecha", "Registrado"]
+            cabeceras = ["ID", "Congelador", "Pos.", "Nombre", "Especie",
+                         "Seguimiento", "Tax.", "Origen", "Código de caja", "Fecha"]
             filas = [
                 [f"#{c.id}", "Vertical" if c.congelador == 1 else "Horizontal",
-                 c.posicion, c.nombre, c.fecha, c.created_at.strftime("%Y-%m-%d")]
+                 c.posicion, c.nombre,
+                 getattr(c, 'especie', '—'), getattr(c, 'seguimiento', '—'),
+                 getattr(c, 'identificacion_taxonomica', None) or "—",
+                 getattr(c, 'origen_muestra', None) or "—",
+                 getattr(c, 'codigo_caja', None) or "—",
+                 c.fecha]
                 for c in registros
             ]
             titulo_seccion = "Registro de Cajas"
@@ -336,7 +376,6 @@ def exportar(
             for fila in filas
         )
         ths = "".join(f"<th>{h}</th>" for h in cabeceras)
-
         filtros_str = f"IDs seleccionados: {ids}" if ids else "Todos los registros"
 
         html = f"""
@@ -357,35 +396,24 @@ def exportar(
                   font-size: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }}
             td {{ padding: 5px 7px; border-bottom: 1px solid #e2e8f0; font-size: 8.5px; }}
             tr:nth-child(even) td {{ background: #f8fafc; }}
-            tr:hover td {{ background: #eff6ff; }}
             .footer {{ margin-top: 14px; font-size: 7.5px; color: #94a3b8;
                        border-top: 1px solid #e2e8f0; padding-top: 6px;
                        display: flex; justify-content: space-between; }}
             .total {{ font-size: 9px; font-weight: bold; color: #2563eb; margin-bottom: 8px; }}
         </style></head><body>
-
         <div class="header">
             <div class="header-left">
                 <h1>UTN · Laboratorio</h1>
                 <h2>{titulo_seccion}</h2>
             </div>
-            <div class="header-right">
-                Generado: {now_str}<br>
-                Sistema de Trazabilidad UTN
-            </div>
+            <div class="header-right">Generado: {now_str}<br>Sistema de Trazabilidad UTN</div>
         </div>
-
-        <div class="meta">
-            <b>Filtros aplicados:</b> {filtros_str}
-        </div>
-
+        <div class="meta"><b>Filtros aplicados:</b> {filtros_str}</div>
         <div class="total">Total de registros: {len(filas)}</div>
-
         <table>
             <thead><tr>{ths}</tr></thead>
             <tbody>{filas_html}</tbody>
         </table>
-
         <div class="footer">
             <span>Maintronic &nbsp;|&nbsp; info@maintronic.com.ec &nbsp;|&nbsp; (593) 02 266 6256</span>
             <span>UTN · Laboratorio — Sistema de Trazabilidad de Muestras</span>
@@ -406,76 +434,67 @@ def exportar(
         wb = openpyxl.Workbook()
         ws = wb.active
 
-        # Estilos
-        azul_oscuro  = "1E3A8A"
-        azul_medio   = "2563EB"
-        azul_claro   = "DBEAFE"
-        blanco       = "FFFFFF"
-        gris_fila    = "F8FAFC"
-        borde_color  = "E2E8F0"
+        azul_oscuro = "1E3A8A"
+        azul_medio  = "2563EB"
+        azul_claro  = "DBEAFE"
+        blanco      = "FFFFFF"
+        gris_fila   = "F8FAFC"
+        borde_color = "E2E8F0"
 
-        thin = Side(style="thin", color=borde_color)
+        thin  = Side(style="thin", color=borde_color)
         borde = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-        # ── Fila 1: Título ──
         if scope == "muestras":
-            cabeceras        = ["ID", "Código de barras", "Especie", "N° caja", "Tubo en caja",
-                                "N° réplica", "Nivel", "Medio de cultivo", "N° CCMBIOGEM",
-                                "Ubicación refrigerador", "Fecha registro"]
-            titulo_seccion   = "Registro de Muestras"
-            ws.title         = "Muestras"
+            cabeceras      = ["ID", "Código de barras", "Especie", "N° caja", "Tubo en caja",
+                              "N° réplica", "Nivel", "Medio de cultivo", "N° CCMBIOGEM",
+                              "Ubicación refrigerador", "Fecha registro"]
+            titulo_seccion = "Registro de Muestras"
+            ws.title       = "Muestras"
         else:
-            cabeceras        = ["ID", "Congelador", "Posición", "Nombre", "Fecha", "Fecha registro"]
-            titulo_seccion   = "Registro de Cajas"
-            ws.title         = "Cajas"
+            cabeceras      = ["ID", "Congelador", "Posición", "Nombre", "Especie",
+                              "Seguimiento", "Id. taxonómica", "Origen muestra",
+                              "Código de caja", "Fecha", "Fecha registro"]
+            titulo_seccion = "Registro de Cajas"
+            ws.title       = "Cajas"
 
-        ncols = len(cabeceras)
+        ncols    = len(cabeceras)
         col_last = get_column_letter(ncols)
 
-        # Título
         ws.merge_cells(f"A1:{col_last}1")
-        c = ws["A1"]
+        c           = ws["A1"]
         c.value     = f"UTN · Laboratorio — {titulo_seccion}"
         c.font      = Font(name="Arial", bold=True, size=14, color=blanco)
         c.fill      = PatternFill("solid", fgColor=azul_oscuro)
         c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[1].height = 28
 
-        # Subtítulo / metadata
-        ws.merge_cells(f"A2:{col_last}2")
-        c = ws["A2"]
         filtros_str2 = f"IDs: {ids}" if ids else "Todos los registros"
-
+        ws.merge_cells(f"A2:{col_last}2")
+        c           = ws["A2"]
         c.value     = f"Generado: {now_str}   —   Filtros: {filtros_str2}   —   Total: {len(registros)} registros"
         c.font      = Font(name="Arial", size=9, color="64748B")
         c.fill      = PatternFill("solid", fgColor="F1F5F9")
         c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[2].height = 16
-
-        # Fila vacía
         ws.row_dimensions[3].height = 6
 
-        # Cabeceras
         for ci, h in enumerate(cabeceras, 1):
-            c = ws.cell(row=4, column=ci, value=h)
+            c           = ws.cell(row=4, column=ci, value=h)
             c.font      = Font(name="Arial", bold=True, size=9, color=blanco)
             c.fill      = PatternFill("solid", fgColor=azul_medio)
             c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
             c.border    = borde
         ws.row_dimensions[4].height = 22
 
-        # Datos
         if scope == "muestras":
             for ri, m in enumerate(registros, 5):
                 row_fill = PatternFill("solid", fgColor=(gris_fila if ri % 2 == 0 else blanco))
-                vals = [
-                    m.id, m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
-                    m.numero_tubo_en_caja, m.numero_replica, m.nivel, m.medio_cultivo,
-                    m.numero_muestra_ccmbi_ogem, m.ubicacion_refrigerador or "—",
-                    m.created_at.strftime("%Y-%m-%d %H:%M")
-                ]
+                vals = [m.id, m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
+                        m.numero_tubo_en_caja, m.numero_replica, m.nivel, m.medio_cultivo,
+                        m.numero_muestra_ccmbi_ogem, m.ubicacion_refrigerador or "—",
+                        m.created_at.strftime("%Y-%m-%d %H:%M")]
                 for ci, v in enumerate(vals, 1):
-                    c = ws.cell(row=ri, column=ci, value=v)
+                    c           = ws.cell(row=ri, column=ci, value=v)
                     c.font      = Font(name="Arial", size=9)
                     c.fill      = row_fill
                     c.alignment = Alignment(vertical="center")
@@ -487,29 +506,34 @@ def exportar(
                 vals = [
                     caja_obj.id,
                     "Vertical" if caja_obj.congelador == 1 else "Horizontal",
-                    caja_obj.posicion, caja_obj.nombre, caja_obj.fecha,
-                    caja_obj.created_at.strftime("%Y-%m-%d %H:%M")
+                    caja_obj.posicion,
+                    caja_obj.nombre,
+                    getattr(caja_obj, 'especie', '—'),
+                    getattr(caja_obj, 'seguimiento', '—'),
+                    getattr(caja_obj, 'identificacion_taxonomica', None) or "—",
+                    getattr(caja_obj, 'origen_muestra', None) or "—",
+                    getattr(caja_obj, 'codigo_caja', None) or "—",
+                    caja_obj.fecha,
+                    caja_obj.created_at.strftime("%Y-%m-%d %H:%M"),
                 ]
                 for ci, v in enumerate(vals, 1):
-                    c = ws.cell(row=ri, column=ci, value=v)
+                    c           = ws.cell(row=ri, column=ci, value=v)
                     c.font      = Font(name="Arial", size=9)
                     c.fill      = row_fill
                     c.alignment = Alignment(vertical="center")
                     c.border    = borde
                 ws.row_dimensions[ri].height = 16
 
-        # Fila de total al final
         last_row = 4 + len(registros) + 1
         ws.merge_cells(f"A{last_row}:{col_last}{last_row}")
-        c = ws.cell(row=last_row, column=1, value=f"Total de registros: {len(registros)}")
+        c           = ws.cell(row=last_row, column=1, value=f"Total de registros: {len(registros)}")
         c.font      = Font(name="Arial", bold=True, size=9, color=azul_medio)
         c.fill      = PatternFill("solid", fgColor=azul_claro)
         c.alignment = Alignment(horizontal="right", vertical="center")
         ws.row_dimensions[last_row].height = 18
 
-        # Ancho de columnas automático
-        ancho_min = {"A": 6, "B": 18, "C": 16, "D": 16, "E": 8, "F": 8,
-                     "G": 12, "H": 12, "I": 16, "J": 30, "K": 16}
+        ancho_min = {"A": 6, "B": 18, "C": 14, "D": 20, "E": 10, "F": 10,
+                     "G": 16, "H": 18, "I": 34, "J": 12, "K": 16}
         for ci in range(1, ncols + 1):
             col_letter = get_column_letter(ci)
             max_len = max(
@@ -519,14 +543,12 @@ def exportar(
             )
             ws.column_dimensions[col_letter].width = max(
                 ancho_min.get(col_letter, 10),
-                min(max_len + 3, 40)
+                min(max_len + 3, 44)
             )
 
-        # Congelar encabezados
         ws.freeze_panes = "A5"
 
-        # Pestaña de info
-        ws_info = wb.create_sheet("Info")
+        ws_info        = wb.create_sheet("Info")
         ws_info["A1"] = "Sistema de Trazabilidad UTN · Laboratorio"
         ws_info["A1"].font = Font(bold=True, size=12)
         ws_info["A3"] = "Desarrollado por:"
@@ -568,8 +590,8 @@ def generar_pdf_etiqueta(muestra_id: int):
     if not muestra:
         return {"error": "No existe"}
 
-    base_path  = os.path.abspath("app/static/barcodes/")
-    image_path = f"file://{base_path}/{muestra.codigo_barra}.png"
+    base_path    = os.path.abspath("app/static/barcodes/")
+    image_path   = f"file://{base_path}/{muestra.codigo_barra}.png"
     html_content = f"""
     <html><head><style>
         @page {{ size: 32mm 13mm; margin: 0; }}
@@ -592,7 +614,7 @@ def generar_pdf_etiqueta(muestra_id: int):
 
 @app.get("/calibrar/{salto}")
 def calibrar(salto: int):
-    data = b''
+    data           = b''
     codigo_barcode = b'00001'
     codigo_texto   = b'UTN-2026-00001'
     for _ in range(5):

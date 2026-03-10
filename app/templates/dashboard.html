@@ -48,7 +48,6 @@
             min-height: 100vh;
         }
 
-        /* Topbar */
         .topbar {
             background: var(--white);
             border-bottom: 1px solid var(--border);
@@ -60,7 +59,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 1px 8px rgba(0, 0, 0, .06);
         }
 
         .brand {
@@ -111,7 +110,6 @@
             background: #1d4ed8;
         }
 
-        /* Page */
         .page {
             max-width: 1280px;
             margin: 0 auto;
@@ -134,7 +132,6 @@
             margin-top: 4px;
         }
 
-        /* Stats */
         .stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -187,7 +184,6 @@
             margin-top: 8px;
         }
 
-        /* Tabs */
         .tabs-row {
             display: flex;
             gap: 4px;
@@ -225,9 +221,9 @@
 
         .panel.active {
             display: block;
+            animation: fadeIn .25s ease both;
         }
 
-        /* Toolbar */
         .toolbar {
             display: flex;
             align-items: center;
@@ -332,7 +328,6 @@
             font-weight: 600;
         }
 
-        /* Export action bar */
         .export-action-bar {
             display: flex;
             align-items: center;
@@ -451,7 +446,6 @@
             background: var(--red-light);
         }
 
-        /* Filter strip */
         .filter-strip {
             background: var(--white);
             border: 1px solid var(--border);
@@ -497,7 +491,7 @@
         }
 
         .filter-actions {
-            grid-column: 1 / -1;
+            grid-column: 1/-1;
             display: flex;
             gap: 8px;
             padding-top: 4px;
@@ -534,7 +528,6 @@
             background: var(--surface);
         }
 
-        /* Table */
         .table-card {
             background: var(--white);
             border: 1px solid var(--border);
@@ -649,6 +642,18 @@
             border: 1px solid #fde68a;
         }
 
+        .badge-si {
+            background: var(--green-light);
+            color: var(--green);
+            border: 1px solid #a7f3d0;
+        }
+
+        .badge-no {
+            background: var(--surface);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+
         .act-btn {
             padding: 4px 11px;
             border-radius: 6px;
@@ -697,7 +702,17 @@
             font-style: italic;
         }
 
-        /* Footer */
+        /* Codigo de caja truncado con tooltip */
+        .codigo-caja-cell {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11.5px;
+            color: var(--text-mid);
+            cursor: default;
+        }
+
         .footer {
             text-align: center;
             margin-top: 40px;
@@ -718,10 +733,6 @@
             to {
                 opacity: 1;
             }
-        }
-
-        .panel.active {
-            animation: fadeIn .25s ease both;
         }
 
         @media (max-width:768px) {
@@ -765,7 +776,6 @@
             <p>Registros del sistema de trazabilidad UTN</p>
         </div>
 
-        <!-- Stats -->
         <div class="stats">
             <div class="stat">
                 <div class="lbl">Total muestras</div>
@@ -778,11 +788,11 @@
                 <div class="sub">en sistema</div>
             </div>
             <div class="stat">
-                <div class="lbl">Último registro</div>
+                <div class="lbl">Ultimo registro</div>
                 <div class="val" style="font-size:17px;margin-top:7px;">
                     {% if muestras %}{{ muestras[0].created_at.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
                 </div>
-                <div class="sub">muestra más reciente</div>
+                <div class="sub">muestra mas reciente</div>
             </div>
             <div class="stat amber">
                 <div class="lbl">Estado</div>
@@ -791,7 +801,6 @@
             </div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs-row">
             <button class="tab-btn active" id="tab-m" onclick="switchTab('m',this)">Muestras ({{ muestras|length
                 }})</button>
@@ -801,7 +810,7 @@
         <!-- MUESTRAS -->
         <div class="panel active" id="panel-m">
             <div class="toolbar">
-                <input class="search" id="buscar-m" placeholder="Buscar código, especie, caja..."
+                <input class="search" id="buscar-m" placeholder="Buscar codigo, especie, caja..."
                     oninput="buscar('m')" />
                 <button class="btn-filter" id="filterbtn-m" onclick="toggleFiltros('m')">
                     Filtros <span class="filter-dot" id="fdot-m"></span>
@@ -811,30 +820,12 @@
             </div>
 
             <div class="filter-strip" id="filters-m">
-                <div>
-                    <label>Fecha desde</label>
-                    <input type="date" id="fm-desde" />
-                </div>
-                <div>
-                    <label>Fecha hasta</label>
-                    <input type="date" id="fm-hasta" />
-                </div>
-                <div>
-                    <label>Especie</label>
-                    <input type="text" id="fm-especie" placeholder="Ej: Lev5" />
-                </div>
-                <div>
-                    <label>Medio cultivo</label>
-                    <input type="text" id="fm-medio" placeholder="Ej: YPD" />
-                </div>
-                <div>
-                    <label>Nivel</label>
-                    <input type="text" id="fm-nivel" placeholder="Ej: PISO 1" />
-                </div>
-                <div>
-                    <label>N° caja</label>
-                    <input type="text" id="fm-caja" placeholder="Ej: Caja 1 2024" />
-                </div>
+                <div><label>Fecha desde</label><input type="date" id="fm-desde" /></div>
+                <div><label>Fecha hasta</label><input type="date" id="fm-hasta" /></div>
+                <div><label>Especie</label><input type="text" id="fm-especie" placeholder="Ej: Lev5" /></div>
+                <div><label>Medio cultivo</label><input type="text" id="fm-medio" placeholder="Ej: YPD" /></div>
+                <div><label>Nivel</label><input type="text" id="fm-nivel" placeholder="Ej: PISO 1" /></div>
+                <div><label>N caja</label><input type="text" id="fm-caja" placeholder="Ej: Caja 1 2024" /></div>
                 <div class="filter-actions">
                     <button class="btn-sm apply" onclick="aplicarFiltros('m')">Aplicar filtros</button>
                     <button class="btn-sm clear" onclick="limpiarFiltros('m')">Limpiar</button>
@@ -846,7 +837,7 @@
                         todo</b></span>
                 <div class="sep"></div>
                 <button class="btn-selall" onclick="seleccionarTodo('m')">Seleccionar todo</button>
-                <button class="btn-desel" onclick="deseleccionar('m')">Quitar selección</button>
+                <button class="btn-desel" onclick="deseleccionar('m')">Quitar seleccion</button>
                 <div class="sep"></div>
                 <button class="btn-export pdf" id="exp-pdf-m" disabled onclick="exportarSeleccion('m','pdf')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -869,13 +860,11 @@
                     <table id="tabla-m">
                         <thead>
                             <tr>
-                                <th class="col-check">
-                                    <input type="checkbox" id="chk-all-m" title="Seleccionar todo"
-                                        onchange="toggleTodo('m', this.checked)" />
-                                </th>
+                                <th class="col-check"><input type="checkbox" id="chk-all-m" title="Seleccionar todo"
+                                        onchange="toggleTodo('m', this.checked)" /></th>
                                 <th class="sortable" onclick="sortTable('tabla-m',1)">ID <span
                                         class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',2)">Código <span
+                                <th class="sortable" onclick="sortTable('tabla-m',2)">Codigo <span
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-m',3)">Especie <span
                                         class="sort-arrow">↕</span></th>
@@ -883,14 +872,14 @@
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-m',5)">Tubo <span
                                         class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',6)">Réplica <span
+                                <th class="sortable" onclick="sortTable('tabla-m',6)">Replica <span
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-m',7)">Nivel <span
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-m',8)">Medio <span
                                         class="sort-arrow">↕</span></th>
                                 <th>CCMBIOGEM</th>
-                                <th>Ubicación</th>
+                                <th>Ubicacion</th>
                                 <th class="sortable" onclick="sortTable('tabla-m',11)">Fecha <span
                                         class="sort-arrow">↕</span></th>
                                 <th>Acciones</th>
@@ -901,9 +890,8 @@
                             <tr data-id="{{ m.id }}" data-especie="{{ m.codigo_utn_especie }}"
                                 data-medio="{{ m.medio_cultivo }}" data-nivel="{{ m.nivel }}"
                                 data-caja="{{ m.numero_caja }}" data-fecha="{{ m.created_at.strftime('%Y-%m-%d') }}">
-                                <td class="col-check">
-                                    <input type="checkbox" class="row-chk" data-tab="m" onchange="onRowCheck('m')" />
-                                </td>
+                                <td class="col-check"><input type="checkbox" class="row-chk" data-tab="m"
+                                        onchange="onRowCheck('m')" /></td>
                                 <td style="color:var(--text-dim);font-size:12px;">#{{ m.id }}</td>
                                 <td class="code">{{ m.codigo_barra }}</td>
                                 <td>{{ m.codigo_utn_especie }}</td>
@@ -918,14 +906,12 @@
                                     {{ m.ubicacion_refrigerador or "—" }}</td>
                                 <td style="font-size:12px;color:var(--text-dim);">{{ m.created_at.strftime('%Y-%m-%d')
                                     }}</td>
-                                <td>
-                                    <button class="act-btn print" data-mid="{{ m.id }}">Imprimir</button>
-                                </td>
+                                <td><button class="act-btn print" data-mid="{{ m.id }}">Imprimir</button></td>
                             </tr>
                             {% endfor %}
                             {% if not muestras %}
                             <tr class="empty-row">
-                                <td colspan="13">No hay muestras registradas aún.</td>
+                                <td colspan="13">No hay muestras registradas aun.</td>
                             </tr>
                             {% endif %}
                         </tbody>
@@ -937,7 +923,8 @@
         <!-- CAJAS -->
         <div class="panel" id="panel-c">
             <div class="toolbar">
-                <input class="search" id="buscar-c" placeholder="Buscar nombre, posición..." oninput="buscar('c')" />
+                <input class="search" id="buscar-c" placeholder="Buscar nombre, codigo, origen..."
+                    oninput="buscar('c')" />
                 <a href="/" class="btn btn-blue" onclick="irCajas(event)">Nueva caja</a>
                 <span class="count" id="cnt-c">{{ cajas|length }} registros</span>
             </div>
@@ -947,7 +934,7 @@
                         todo</b></span>
                 <div class="sep"></div>
                 <button class="btn-selall" onclick="seleccionarTodo('c')">Seleccionar todo</button>
-                <button class="btn-desel" onclick="deseleccionar('c')">Quitar selección</button>
+                <button class="btn-desel" onclick="deseleccionar('c')">Quitar seleccion</button>
                 <div class="sep"></div>
                 <button class="btn-export pdf" id="exp-pdf-c" disabled onclick="exportarSeleccion('c','pdf')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -970,21 +957,26 @@
                     <table id="tabla-c">
                         <thead>
                             <tr>
-                                <th class="col-check">
-                                    <input type="checkbox" id="chk-all-c" title="Seleccionar todo"
-                                        onchange="toggleTodo('c', this.checked)" />
-                                </th>
+                                <th class="col-check"><input type="checkbox" id="chk-all-c" title="Seleccionar todo"
+                                        onchange="toggleTodo('c', this.checked)" /></th>
                                 <th class="sortable" onclick="sortTable('tabla-c',1)">ID <span
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-c',2)">Congelador <span
                                         class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',3)">Posición <span
+                                <th class="sortable" onclick="sortTable('tabla-c',3)">Pos. <span
                                         class="sort-arrow">↕</span></th>
                                 <th class="sortable" onclick="sortTable('tabla-c',4)">Nombre <span
                                         class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',5)">Fecha <span
+                                <th class="sortable" onclick="sortTable('tabla-c',5)">Especie <span
                                         class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',6)">Registrado <span
+                                <th class="sortable" onclick="sortTable('tabla-c',6)">Seguimiento <span
+                                        class="sort-arrow">↕</span></th>
+                                <th>Id. taxonomica</th>
+                                <th>Origen</th>
+                                <th>Codigo de caja</th>
+                                <th class="sortable" onclick="sortTable('tabla-c',10)">Fecha <span
+                                        class="sort-arrow">↕</span></th>
+                                <th class="sortable" onclick="sortTable('tabla-c',11)">Registrado <span
                                         class="sort-arrow">↕</span></th>
                                 <th>Acciones</th>
                             </tr>
@@ -992,9 +984,8 @@
                         <tbody>
                             {% for c in cajas %}
                             <tr data-id="{{ c.id }}" data-fecha="{{ c.fecha }}">
-                                <td class="col-check">
-                                    <input type="checkbox" class="row-chk" data-tab="c" onchange="onRowCheck('c')" />
-                                </td>
+                                <td class="col-check"><input type="checkbox" class="row-chk" data-tab="c"
+                                        onchange="onRowCheck('c')" /></td>
                                 <td style="color:var(--text-dim);font-size:12px;">#{{ c.id }}</td>
                                 <td>
                                     {% if c.congelador == 1 %}
@@ -1005,6 +996,28 @@
                                 </td>
                                 <td style="text-align:center;font-weight:700;">{{ c.posicion }}</td>
                                 <td>{{ c.nombre }}</td>
+                                <td>
+                                    {% if c.especie == 'SI' %}
+                                    <span class="badge badge-si">SI</span>
+                                    {% else %}
+                                    <span class="badge badge-no">NO</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.seguimiento == 'SI' %}
+                                    <span class="badge badge-si">SI</span>
+                                    {% else %}
+                                    <span class="badge badge-no">NO</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:12px;color:var(--text-mid);">{{ c.identificacion_taxonomica or "—"
+                                    }}</td>
+                                <td style="font-size:12px;color:var(--text-mid);">{{ c.origen_muestra or "—" }}</td>
+                                <td>
+                                    <span class="codigo-caja-cell" title="{{ c.codigo_caja or '—' }}">
+                                        {{ c.codigo_caja or "—" }}
+                                    </span>
+                                </td>
                                 <td style="font-size:12px;">{{ c.fecha }}</td>
                                 <td style="font-size:12px;color:var(--text-dim);">{{ c.created_at.strftime('%Y-%m-%d')
                                     }}</td>
@@ -1016,7 +1029,7 @@
                             {% endfor %}
                             {% if not cajas %}
                             <tr class="empty-row">
-                                <td colspan="8">No hay cajas registradas aún.</td>
+                                <td colspan="13">No hay cajas registradas aun.</td>
                             </tr>
                             {% endif %}
                         </tbody>
@@ -1033,7 +1046,6 @@
     </div>
 
     <script>
-        // ── Tabs ──────────────────────────────────────────────────────────────────────
         function switchTab(name, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
@@ -1046,7 +1058,6 @@
             if (params.get('tab') === 'cajas') switchTab('c', document.getElementById('tab-c'))
         })
 
-        // ── Búsqueda ──────────────────────────────────────────────────────────────────
         function buscar(tab) {
             const texto = document.getElementById(`buscar-${tab}`).value.toLowerCase()
             const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
@@ -1060,7 +1071,6 @@
             actualizarSelInfo(tab)
         }
 
-        // ── Filter strip ──────────────────────────────────────────────────────────────
         function toggleFiltros(tab) {
             document.getElementById(`filters-${tab}`).classList.toggle('open')
             document.getElementById(`filterbtn-${tab}`).classList.toggle('active')
@@ -1101,9 +1111,7 @@
             document.getElementById('fdot-m').classList.remove('show')
         }
 
-        // ── Sort ──────────────────────────────────────────────────────────────────────
         const sortState = {}
-
         function sortTable(tableId, col) {
             const tbody = document.querySelector(`#${tableId} tbody`)
             const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'))
@@ -1126,7 +1134,6 @@
             })
         }
 
-        // ── Checkbox / selección ──────────────────────────────────────────────────────
         function toggleTodo(tab, checked) {
             document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`).forEach(r => {
                 if (r.style.display === 'none') return
@@ -1147,19 +1154,11 @@
             actualizarSelInfo(tab)
         }
 
-        function seleccionarTodo(tab) {
-            document.getElementById(`chk-all-${tab}`).checked = true
-            toggleTodo(tab, true)
-        }
-
-        function deseleccionar(tab) {
-            document.getElementById(`chk-all-${tab}`).checked = false
-            toggleTodo(tab, false)
-        }
+        function seleccionarTodo(tab) { document.getElementById(`chk-all-${tab}`).checked = true; toggleTodo(tab, true) }
+        function deseleccionar(tab) { document.getElementById(`chk-all-${tab}`).checked = false; toggleTodo(tab, false) }
 
         function getSeleccionados(tab) {
-            return Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr.row-selected`))
-                .map(r => r.dataset.id)
+            return Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr.row-selected`)).map(r => r.dataset.id)
         }
 
         function actualizarSelInfo(tab) {
@@ -1170,16 +1169,13 @@
             const xls = document.getElementById(`exp-xls-${tab}`)
             if (n === 0) {
                 info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`
-                pdf.disabled = true
-                xls.disabled = true
+                pdf.disabled = true; xls.disabled = true
             } else {
                 info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`
-                pdf.disabled = false
-                xls.disabled = false
+                pdf.disabled = false; xls.disabled = false
             }
         }
 
-        // ── Exportar ──────────────────────────────────────────────────────────────────
         function exportarSeleccion(tab, fmt) {
             const ids = getSeleccionados(tab)
             if (!ids.length) return
@@ -1188,7 +1184,6 @@
             window.location.href = `/exportar?${p.toString()}`
         }
 
-        // ── Imprimir desde tabla ──────────────────────────────────────────────────────
         document.addEventListener('click', async function (e) {
             const btn = e.target.closest('.act-btn.print[data-mid]')
             if (!btn) return
@@ -1203,7 +1198,6 @@
             setTimeout(() => { btn.textContent = orig }, 2500)
         })
 
-        // ── Ir a tab cajas en formulario ──────────────────────────────────────────────
         function irCajas(e) {
             e.preventDefault()
             sessionStorage.setItem('openTab', 'cajas')

@@ -46,7 +46,6 @@
             min-height: 100vh;
         }
 
-        /* Topbar */
         .topbar {
             background: var(--white);
             border-bottom: 1px solid var(--border);
@@ -58,7 +57,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 1px 8px rgba(0, 0, 0, .06);
         }
 
         .brand {
@@ -109,7 +108,6 @@
             background: #1d4ed8;
         }
 
-        /* Page */
         .page {
             max-width: 960px;
             margin: 0 auto;
@@ -133,7 +131,6 @@
             margin-top: 4px;
         }
 
-        /* Tabs */
         .tabs-row {
             display: flex;
             gap: 4px;
@@ -173,7 +170,6 @@
             display: block;
         }
 
-        /* Card */
         .card {
             background: var(--white);
             border: 1px solid var(--border);
@@ -202,7 +198,6 @@
             padding: 24px;
         }
 
-        /* Form */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -308,6 +303,19 @@
         .hint {
             font-size: 11px;
             color: var(--text-dim);
+        }
+
+        /* Separador de sección dentro del formulario */
+        .form-section-title {
+            grid-column: 1 / -1;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            padding: 4px 0 2px;
+            border-bottom: 1px solid var(--border);
+            margin-top: 4px;
         }
 
         .form-actions {
@@ -517,7 +525,7 @@
             color: var(--red);
         }
 
-        /* ── Scan modal ─────────────────────────────────────────────────────── */
+        /* Scan modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -569,7 +577,6 @@
             background: var(--blue-light);
         }
 
-        /* Resultado: contenedor */
         .scan-result {
             margin-top: 16px;
             border-radius: 10px;
@@ -592,7 +599,6 @@
             padding: 14px 16px;
         }
 
-        /* Tabs dentro del resultado */
         .r-tabs {
             display: flex;
             background: #d1fae5;
@@ -626,7 +632,6 @@
             background: #bbf7d0;
         }
 
-        /* Vista datos */
         .r-view {
             display: none;
             padding: 14px 16px;
@@ -649,7 +654,6 @@
             line-height: 1.9;
         }
 
-        /* Vista código de barras */
         .r-view-barcode {
             display: none;
             padding: 24px 16px 16px;
@@ -696,7 +700,6 @@
             background: var(--surface);
         }
 
-        /* Anims */
         @keyframes fadeUp {
             from {
                 opacity: 0;
@@ -888,6 +891,10 @@
                     <div class="global-error" id="error-cajas"></div>
                     <form id="form-cajas" method="post" action="/cajas" novalidate>
                         <div class="form-grid">
+
+                            <!-- Ubicación física -->
+                            <div class="form-section-title">Ubicación fisica</div>
+
                             <div class="form-group">
                                 <label for="congelador">Congelador</label>
                                 <select id="congelador" name="congelador" required>
@@ -909,11 +916,59 @@
                                 <div class="error-msg" id="err-fecha"></div>
                             </div>
                             <div class="form-group">
-                                <label for="nombre">Nombre</label>
+                                <label for="nombre">Nombre de la caja</label>
                                 <input id="nombre" name="nombre" placeholder="Ej: Caja Levaduras 2024"
-                                    autocomplete="off" required />
+                                    autocomplete="off" required oninput="actualizarCodigoCaja()" />
                                 <div class="error-msg" id="err-nombre"></div>
                             </div>
+
+                            <!-- Datos biologicos -->
+                            <div class="form-section-title">Datos biologicos</div>
+
+                            <div class="form-group">
+                                <label for="especie">Especie</label>
+                                <select id="especie" name="especie" required onchange="actualizarCodigoCaja()">
+                                    <option value="">— Seleccione —</option>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                                <div class="error-msg" id="err-especie"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="seguimiento">Seguimiento</label>
+                                <select id="seguimiento" name="seguimiento" required onchange="actualizarCodigoCaja()">
+                                    <option value="">— Seleccione —</option>
+                                    <option value="SI">SI</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                                <div class="error-msg" id="err-seguimiento"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="identificacion_taxonomica">Identificacion taxonomica</label>
+                                <input id="identificacion_taxonomica" name="identificacion_taxonomica"
+                                    placeholder="Ej: Fung, Lev, Bact" autocomplete="off"
+                                    oninput="actualizarCodigoCaja()" />
+                                <div class="error-msg" id="err-identificacion_taxonomica"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="origen_muestra">Origen de la muestra</label>
+                                <input id="origen_muestra" name="origen_muestra" placeholder="Ej: Ecuador, Amazonia"
+                                    autocomplete="off" oninput="actualizarCodigoCaja()" />
+                                <div class="error-msg" id="err-origen_muestra"></div>
+                            </div>
+
+                            <!-- Codigo autogenerado -->
+                            <div class="form-section-title">Codigo de caja</div>
+
+                            <div class="form-group full">
+                                <label>Codigo de caja — autogenerado</label>
+                                <div class="ubicacion-preview empty" id="codigo-caja-preview">
+                                    Complete los campos para ver el codigo...
+                                </div>
+                                <div class="hint">Generado desde: Nombre / Especie / Seguimiento / Id. taxonomica /
+                                    Origen</div>
+                            </div>
+
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn-primary" id="btn-guardar-c">Guardar caja</button>
@@ -929,7 +984,7 @@
     <div class="modal-overlay" id="scan-modal">
         <div class="modal">
             <h3>Escanear muestra</h3>
-            <p>Escanee el codigo de barras o escríbalo manualmente</p>
+            <p>Escanee el codigo de barras o escribalo manualmente</p>
             <input class="scan-input" id="scan-input" placeholder="UTN-2026-00001" autocomplete="off" />
             <div class="scan-result" id="scan-result"></div>
             <button class="modal-close" onclick="cerrarScan()">Cerrar</button>
@@ -959,6 +1014,7 @@
             if (mid) mostrarDetalle(mid)
         })
 
+            // Preview ubicacion muestras
             ;['nivel', 'numero_caja', 'numero_replica', 'numero_tubo_en_caja'].forEach(id =>
                 document.getElementById(id).addEventListener('input', () => {
                     const n = document.getElementById('nivel').value.trim()
@@ -966,10 +1022,34 @@
                     const r = document.getElementById('numero_replica').value.trim()
                     const t = document.getElementById('numero_tubo_en_caja').value.trim()
                     const el = document.getElementById('ubi-preview')
-                    if (n && c && r && t) { el.textContent = `Nivel ${n} / Caja ${c} / Réplica ${r} / Tubo ${t}`; el.classList.remove('empty') }
-                    else { el.textContent = 'Complete los campos para ver la ubicación...'; el.classList.add('empty') }
+                    if (n && c && r && t) { el.textContent = `Nivel ${n} / Caja ${c} / Replica ${r} / Tubo ${t}`; el.classList.remove('empty') }
+                    else { el.textContent = 'Complete los campos para ver la ubicacion...'; el.classList.add('empty') }
                 })
             )
+
+        // Autogenerar codigo de caja
+        function actualizarCodigoCaja() {
+            const nombre = document.getElementById('nombre').value.trim()
+            const especie = document.getElementById('especie').value
+            const seguimiento = document.getElementById('seguimiento').value
+            const tax = document.getElementById('identificacion_taxonomica').value.trim()
+            const origen = document.getElementById('origen_muestra').value.trim()
+            const el = document.getElementById('codigo-caja-preview')
+
+            if (nombre || especie || seguimiento) {
+                const partes = []
+                if (nombre) partes.push(nombre)
+                if (especie) partes.push(`Esp:${especie}`)
+                if (seguimiento) partes.push(`Seg:${seguimiento}`)
+                if (tax) partes.push(`Tax:${tax}`)
+                if (origen) partes.push(`Orig:${origen}`)
+                el.textContent = partes.join(' / ')
+                el.classList.remove('empty')
+            } else {
+                el.textContent = 'Complete los campos para ver el codigo...'
+                el.classList.add('empty')
+            }
+        }
 
         const patron = /^[\w\s\-\.\/áéíóúÁÉÍÓÚñÑ]+$/
 
@@ -989,7 +1069,7 @@
 
         function validarMuestras() {
             clearErrors('form-muestras'); let ok = true
-                ;[['nivel', 'Nivel'], ['numero_caja', 'N caja'], ['codigo_utn_especie', 'Código especie'],
+                ;[['nivel', 'Nivel'], ['numero_caja', 'N caja'], ['codigo_utn_especie', 'Codigo especie'],
                 ['medio_cultivo', 'Medio cultivo'], ['numero_muestra_ccmbi_ogem', 'N CCMBIOGEM']].forEach(([id, lbl]) => {
                     const v = document.getElementById(id).value.trim()
                     if (!v) { showErr(id, `"${lbl}" es obligatorio.`); ok = false }
@@ -1013,6 +1093,8 @@
             if (!n) { showErr('nombre', 'Obligatorio.'); ok = false }
             else if (!patron.test(n)) { showErr('nombre', 'Caracteres no permitidos.'); ok = false }
             else if (n.length > 100) { showErr('nombre', 'Excede 100 caracteres.'); ok = false }
+            if (!document.getElementById('especie').value) { showErr('especie', 'Seleccione uno.'); ok = false }
+            if (!document.getElementById('seguimiento').value) { showErr('seguimiento', 'Seleccione uno.'); ok = false }
             return ok
         }
 
@@ -1048,6 +1130,8 @@
                 b.style.background = 'var(--green-light)'; b.style.borderColor = '#a7f3d0'; b.style.color = 'var(--green)'
                 b.textContent = 'Caja registrada exitosamente.'; b.classList.add('show')
                 document.getElementById('form-cajas').reset()
+                document.getElementById('codigo-caja-preview').textContent = 'Complete los campos para ver el codigo...'
+                document.getElementById('codigo-caja-preview').classList.add('empty')
                 setTimeout(() => b.classList.remove('show'), 3000)
                 return
             }
@@ -1060,18 +1144,18 @@
         async function mostrarDetalle(id) {
             currentMuestraId = id
             const data = await fetch(`/muestras/${id}/json`).then(r => r.json())
-            document.getElementById('detail-subtitle').textContent = `Código: ${data.codigo_barra}`
+            document.getElementById('detail-subtitle').textContent = `Codigo: ${data.codigo_barra}`
             document.getElementById('detail-barcode').src = data.barcode_url + '?t=' + Date.now()
             const campos = [
-                ['Código de barras', data.codigo_barra, true],
+                ['Codigo de barras', data.codigo_barra, true],
                 ['Especie', data.codigo_utn_especie],
                 ['Nivel', data.nivel],
                 ['Caja', data.numero_caja],
-                ['Réplica', data.numero_replica],
+                ['Replica', data.numero_replica],
                 ['Tubo en caja', data.numero_tubo_en_caja],
                 ['Medio de cultivo', data.medio_cultivo],
                 ['N CCMBIOGEM', data.numero_muestra_ccmbi_ogem],
-                ['Ubicación', data.ubicacion_refrigerador],
+                ['Ubicacion', data.ubicacion_refrigerador],
                 ['Registrado', data.created_at],
             ]
             document.getElementById('detail-grid').innerHTML = campos.map(([lbl, val, isCode]) =>
@@ -1097,14 +1181,14 @@
             currentMuestraId = null
             document.getElementById('detail-panel').classList.remove('show')
             document.getElementById('form-muestras').reset()
-            document.getElementById('ubi-preview').textContent = 'Complete los campos para ver la ubicación...'
+            document.getElementById('ubi-preview').textContent = 'Complete los campos para ver la ubicacion...'
             document.getElementById('ubi-preview').classList.add('empty')
             document.getElementById('print-status').className = 'print-status'
             window.history.replaceState(null, '', '/')
             window.scrollTo({ top: 0, behavior: 'smooth' })
         }
 
-        // ── Scan modal ────────────────────────────────────────────────────────────────
+        // Scan modal
         function abrirScan() {
             document.getElementById('scan-modal').classList.add('show')
             document.getElementById('scan-result').className = 'scan-result'
@@ -1113,15 +1197,12 @@
             setTimeout(() => document.getElementById('scan-input').focus(), 100)
         }
 
-        function cerrarScan() {
-            document.getElementById('scan-modal').classList.remove('show')
-        }
+        function cerrarScan() { document.getElementById('scan-modal').classList.remove('show') }
 
         document.getElementById('scan-modal').addEventListener('click', e => {
             if (e.target === document.getElementById('scan-modal')) cerrarScan()
         })
 
-        // Toggle entre vista datos y vista código de barras
         function scanVista(vista) {
             const tabs = document.querySelectorAll('.r-tab')
             const vDatos = document.getElementById('r-view-datos')
@@ -1147,19 +1228,19 @@
                     el.innerHTML = `
                 <div class="r-tabs">
                     <button class="r-tab active" onclick="scanVista('datos')">Datos</button>
-                    <button class="r-tab"        onclick="scanVista('barcode')">Código de barras</button>
+                    <button class="r-tab"        onclick="scanVista('barcode')">Codigo de barras</button>
                 </div>
                 <div class="r-view active" id="r-view-datos">
                     <div class="r-code">${d.codigo_barra}</div>
                     <div class="r-detail">
                         <b>Especie:</b> ${d.codigo_utn_especie}<br>
                         <b>Caja:</b> ${d.numero_caja} &nbsp;&middot;&nbsp; <b>Tubo:</b> ${d.numero_tubo_en_caja}<br>
-                        <b>Ubicación:</b> ${d.ubicacion_refrigerador}<br>
+                        <b>Ubicacion:</b> ${d.ubicacion_refrigerador}<br>
                         <b>Registrado:</b> ${d.created_at}
                     </div>
                 </div>
                 <div class="r-view-barcode" id="r-view-barcode">
-                    <img src="${d.barcode_url}" alt="Código de barras" />
+                    <img src="${d.barcode_url}" alt="Codigo de barras" />
                     <div class="r-bc-label">${d.codigo_barra}</div>
                 </div>`
                 } else {
