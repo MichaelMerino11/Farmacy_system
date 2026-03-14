@@ -10,7 +10,7 @@
     <style>
         :root {
             --bg: #f4f6fb;
-            --white: #ffffff;
+            --white: #fff;
             --surface: #eef1f8;
             --border: #dde3f0;
             --blue: #2563eb;
@@ -29,8 +29,8 @@
             --text-dim: #94a3b8;
             --font: 'Plus Jakarta Sans', sans-serif;
             --radius: 12px;
-            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-            --t: 0.2s ease;
+            --shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 4px 16px rgba(0, 0, 0, .06);
+            --t: .2s ease
         }
 
         *,
@@ -38,14 +38,14 @@
         *::after {
             box-sizing: border-box;
             margin: 0;
-            padding: 0;
+            padding: 0
         }
 
         body {
             font-family: var(--font);
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
+            min-height: 100vh
         }
 
         .topbar {
@@ -59,25 +59,24 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 1px 8px rgba(0, 0, 0, .06);
+            box-shadow: 0 1px 8px rgba(0, 0, 0, .06)
         }
 
         .brand {
             display: flex;
             align-items: center;
-            text-decoration: none;
+            text-decoration: none
         }
 
         .brand-logo {
             height: 38px;
-            width: auto;
-            object-fit: contain;
+            object-fit: contain
         }
 
         .topbar-nav {
             display: flex;
             gap: 8px;
-            align-items: center;
+            align-items: center
         }
 
         .nav-pill {
@@ -91,52 +90,52 @@
             border: 1px solid transparent;
             cursor: pointer;
             font-family: var(--font);
-            background: transparent;
+            background: transparent
         }
 
         .nav-pill:hover {
             background: var(--surface);
-            color: var(--text);
+            color: var(--text)
         }
 
         .nav-pill.primary {
             background: var(--blue);
             color: white;
             border-color: var(--blue);
-            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25)
         }
 
         .nav-pill.primary:hover {
-            background: #1d4ed8;
+            background: #1d4ed8
         }
 
         .page {
             max-width: 1280px;
             margin: 0 auto;
-            padding: 32px 24px 64px;
+            padding: 32px 24px 64px
         }
 
         .page-header {
-            margin-bottom: 24px;
+            margin-bottom: 24px
         }
 
         .page-header h2 {
             font-size: 26px;
             font-weight: 800;
-            letter-spacing: -.02em;
+            letter-spacing: -.02em
         }
 
         .page-header p {
             font-size: 14px;
             color: var(--text-mid);
-            margin-top: 4px;
+            margin-top: 4px
         }
 
         .stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 14px;
-            margin-bottom: 28px;
+            margin-bottom: 28px
         }
 
         .stat {
@@ -145,12 +144,12 @@
             border-radius: var(--radius);
             padding: 18px 20px;
             box-shadow: var(--shadow);
-            transition: var(--t);
+            transition: var(--t)
         }
 
         .stat:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .1)
         }
 
         .stat .lbl {
@@ -158,7 +157,7 @@
             font-weight: 700;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: .06em;
+            letter-spacing: .06em
         }
 
         .stat .val {
@@ -166,28 +165,28 @@
             font-weight: 800;
             color: var(--blue);
             line-height: 1.1;
-            margin: 4px 0 2px;
+            margin: 4px 0 2px
         }
 
         .stat .sub {
             font-size: 12px;
-            color: var(--text-dim);
+            color: var(--text-dim)
         }
 
         .stat.green .val {
-            color: var(--green);
+            color: var(--green)
         }
 
         .stat.amber .val {
             color: var(--amber);
             font-size: 16px;
-            margin-top: 8px;
+            margin-top: 8px
         }
 
         .tabs-row {
             display: flex;
             gap: 4px;
-            margin-bottom: 16px;
+            margin-bottom: 16px
         }
 
         .tab-btn {
@@ -200,28 +199,28 @@
             font-weight: 600;
             color: var(--text-mid);
             cursor: pointer;
-            transition: var(--t);
+            transition: var(--t)
         }
 
         .tab-btn.active {
             background: var(--blue);
             color: white;
             border-color: var(--blue);
-            box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25)
         }
 
         .tab-btn:hover:not(.active) {
             background: var(--surface);
-            color: var(--text);
+            color: var(--text)
         }
 
         .panel {
-            display: none;
+            display: none
         }
 
         .panel.active {
             display: block;
-            animation: fadeIn .25s ease both;
+            animation: fadeIn .25s ease both
         }
 
         .toolbar {
@@ -229,7 +228,7 @@
             align-items: center;
             gap: 8px;
             margin-bottom: 10px;
-            flex-wrap: wrap;
+            flex-wrap: wrap
         }
 
         .search {
@@ -242,16 +241,12 @@
             color: var(--text);
             width: 240px;
             outline: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .search::placeholder {
-            color: var(--text-dim);
+            transition: border-color .15s, box-shadow .15s
         }
 
         .search:focus {
             border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1)
         }
 
         .btn {
@@ -266,56 +261,17 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            transition: var(--t);
+            transition: var(--t)
         }
 
         .btn-blue {
             background: var(--blue);
             color: white;
-            box-shadow: 0 2px 6px rgba(37, 99, 235, .2);
+            box-shadow: 0 2px 6px rgba(37, 99, 235, .2)
         }
 
         .btn-blue:hover {
-            background: #1d4ed8;
-        }
-
-        .btn-filter {
-            padding: 8px 14px;
-            background: var(--white);
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            font-family: var(--font);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-mid);
-            cursor: pointer;
-            transition: var(--t);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-filter:hover {
-            border-color: var(--blue);
-            color: var(--blue);
-        }
-
-        .btn-filter.active {
-            background: var(--blue-light);
-            border-color: var(--blue-mid);
-            color: var(--blue);
-        }
-
-        .filter-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--blue);
-            display: none;
-        }
-
-        .filter-dot.show {
-            display: inline-block;
+            background: #1d4ed8
         }
 
         .count {
@@ -325,7 +281,7 @@
             border: 1px solid var(--border);
             padding: 4px 12px;
             border-radius: 20px;
-            font-weight: 600;
+            font-weight: 600
         }
 
         .export-action-bar {
@@ -337,18 +293,18 @@
             background: var(--white);
             border: 1.5px solid var(--border);
             margin-bottom: 10px;
-            flex-wrap: wrap;
+            flex-wrap: wrap
         }
 
         .sel-info {
             font-size: 13px;
             font-weight: 600;
             color: var(--text-mid);
-            margin-right: 4px;
+            margin-right: 4px
         }
 
         .sel-info b {
-            color: var(--blue);
+            color: var(--blue)
         }
 
         .sep {
@@ -356,7 +312,7 @@
             height: 22px;
             background: var(--border);
             margin: 0 2px;
-            flex-shrink: 0;
+            flex-shrink: 0
         }
 
         .btn-export {
@@ -370,42 +326,42 @@
             font-weight: 700;
             cursor: pointer;
             transition: var(--t);
-            border: 1.5px solid;
+            border: 1.5px solid
         }
 
         .btn-export svg {
             width: 14px;
             height: 14px;
-            flex-shrink: 0;
+            flex-shrink: 0
         }
 
         .btn-export.pdf {
             background: var(--red-light);
             color: var(--red);
-            border-color: #fca5a5;
+            border-color: #fca5a5
         }
 
         .btn-export.pdf:hover:not(:disabled) {
             background: var(--red);
             color: white;
-            border-color: var(--red);
+            border-color: var(--red)
         }
 
         .btn-export.excel {
             background: var(--green-light);
             color: var(--green);
-            border-color: #a7f3d0;
+            border-color: #a7f3d0
         }
 
         .btn-export.excel:hover:not(:disabled) {
             background: var(--green);
             color: white;
-            border-color: var(--green);
+            border-color: var(--green)
         }
 
         .btn-export:disabled {
             opacity: .35;
-            cursor: not-allowed;
+            cursor: not-allowed
         }
 
         .btn-selall {
@@ -418,13 +374,13 @@
             font-weight: 600;
             color: var(--text-mid);
             cursor: pointer;
-            transition: var(--t);
+            transition: var(--t)
         }
 
         .btn-selall:hover {
             border-color: var(--blue);
             color: var(--blue);
-            background: var(--blue-light);
+            background: var(--blue-light)
         }
 
         .btn-desel {
@@ -437,95 +393,13 @@
             font-weight: 600;
             color: var(--text-dim);
             cursor: pointer;
-            transition: var(--t);
+            transition: var(--t)
         }
 
         .btn-desel:hover {
             border-color: var(--red);
             color: var(--red);
-            background: var(--red-light);
-        }
-
-        .filter-strip {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 18px;
-            margin-bottom: 10px;
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-            gap: 12px;
-        }
-
-        .filter-strip.open {
-            display: grid;
-        }
-
-        .filter-strip label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .filter-strip input,
-        .filter-strip select {
-            width: 100%;
-            padding: 7px 10px;
-            border: 1.5px solid var(--border);
-            border-radius: 7px;
-            font-size: 13px;
-            font-family: var(--font);
-            color: var(--text);
-            background: var(--white);
-            outline: none;
-            transition: border-color .15s;
-        }
-
-        .filter-strip input:focus,
-        .filter-strip select:focus {
-            border-color: var(--blue);
-        }
-
-        .filter-actions {
-            grid-column: 1/-1;
-            display: flex;
-            gap: 8px;
-            padding-top: 4px;
-        }
-
-        .btn-sm {
-            padding: 6px 14px;
-            border-radius: 7px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: var(--font);
-            transition: var(--t);
-            border: 1.5px solid;
-        }
-
-        .btn-sm.apply {
-            background: var(--blue);
-            color: white;
-            border-color: var(--blue);
-        }
-
-        .btn-sm.apply:hover {
-            background: #1d4ed8;
-        }
-
-        .btn-sm.clear {
-            background: transparent;
-            color: var(--text-mid);
-            border-color: var(--border);
-        }
-
-        .btn-sm.clear:hover {
-            background: var(--surface);
+            background: var(--red-light)
         }
 
         .table-card {
@@ -533,17 +407,17 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            overflow: hidden;
+            overflow: hidden
         }
 
         .table-wrap {
-            overflow-x: auto;
+            overflow-x: auto
         }
 
         table {
             border-collapse: collapse;
             width: 100%;
-            font-size: 13px;
+            font-size: 13px
         }
 
         th {
@@ -556,70 +430,47 @@
             text-transform: uppercase;
             letter-spacing: .06em;
             white-space: nowrap;
-            border-bottom: 1px solid var(--border);
-        }
-
-        th.sortable {
-            cursor: pointer;
-            user-select: none;
-        }
-
-        th.sortable:hover {
-            color: var(--blue);
-        }
-
-        th.sorted {
-            color: var(--blue);
-        }
-
-        th .sort-arrow {
-            margin-left: 3px;
-            opacity: .4;
-            font-size: 10px;
-        }
-
-        th.sorted .sort-arrow {
-            opacity: 1;
+            border-bottom: 1px solid var(--border)
         }
 
         th.col-check,
         td.col-check {
             width: 36px;
             text-align: center;
-            padding: 10px 8px;
+            padding: 10px 8px
         }
 
         input[type="checkbox"] {
             width: 15px;
             height: 15px;
             cursor: pointer;
-            accent-color: var(--blue);
+            accent-color: var(--blue)
         }
 
         td {
             padding: 10px 12px;
             border-bottom: 1px solid #f1f5f9;
             color: var(--text);
-            white-space: nowrap;
+            white-space: nowrap
         }
 
         tr:last-child td {
-            border-bottom: none;
+            border-bottom: none
         }
 
         tr:hover td {
-            background: #f8fafc;
+            background: #f8fafc
         }
 
         tr.row-selected td {
-            background: var(--blue-light) !important;
+            background: var(--blue-light) !important
         }
 
         .code {
             font-family: 'Courier New', monospace;
             font-weight: 700;
             color: var(--blue);
-            font-size: 13px;
+            font-size: 13px
         }
 
         .badge {
@@ -627,31 +478,77 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 700
         }
 
         .badge-v {
             background: var(--teal-light);
             color: var(--teal);
-            border: 1px solid #a5f3fc;
+            border: 1px solid #a5f3fc
         }
 
         .badge-h {
             background: var(--amber-light);
             color: var(--amber);
-            border: 1px solid #fde68a;
+            border: 1px solid #fde68a
         }
 
         .badge-si {
             background: var(--green-light);
             color: var(--green);
-            border: 1px solid #a7f3d0;
+            border: 1px solid #a7f3d0
         }
 
         .badge-no {
             background: var(--surface);
             color: var(--text-dim);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border)
+        }
+
+        /* Barra de capacidad en tabla cajas */
+        .cap-mini {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .cap-bar-mini {
+            width: 64px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .cap-bar-mini-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--green)
+        }
+
+        .cap-bar-mini-fill.warn {
+            background: var(--amber)
+        }
+
+        .cap-bar-mini-fill.full {
+            background: var(--red)
+        }
+
+        .cap-label {
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .cap-ok {
+            color: var(--green)
+        }
+
+        .cap-warn {
+            color: var(--amber)
+        }
+
+        .cap-full {
+            color: var(--red)
         }
 
         .act-btn {
@@ -665,33 +562,33 @@
             cursor: pointer;
             font-family: var(--font);
             background: var(--white);
-            color: var(--text-mid);
+            color: var(--text-mid)
         }
 
         .act-btn:hover {
-            background: var(--surface);
+            background: var(--surface)
         }
 
         .act-btn.print {
             background: var(--teal-light);
             color: var(--teal);
-            border-color: #a5f3fc;
+            border-color: #a5f3fc
         }
 
         .act-btn.print:hover {
             background: var(--teal);
-            color: white;
+            color: white
         }
 
         .act-btn.del {
             background: var(--red-light);
             color: var(--red);
-            border-color: #fca5a5;
+            border-color: #fca5a5
         }
 
         .act-btn.del:hover {
             background: var(--red);
-            color: white;
+            color: white
         }
 
         .empty-row td {
@@ -699,59 +596,149 @@
             padding: 40px;
             color: var(--text-dim);
             font-size: 14px;
-            font-style: italic;
+            font-style: italic
         }
 
-        /* Codigo de caja truncado con tooltip */
-        .codigo-caja-cell {
-            max-width: 220px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        /* FORM CAJAS INLINE */
+        .form-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden
+        }
+
+        .form-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .form-card-header h3 {
+            font-size: 15px;
+            font-weight: 700
+        }
+
+        .form-card-header p {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px
+        }
+
+        .form-card-body {
+            padding: 20px 24px
+        }
+
+        .form-inline {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px
+        }
+
+        .fi-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px
+        }
+
+        .fi-group label {
             font-size: 11.5px;
-            color: var(--text-mid);
-            cursor: default;
+            font-weight: 600;
+            color: var(--text-mid)
+        }
+
+        .fi-group input,
+        .fi-group select {
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-family: var(--font);
+            color: var(--text);
+            background: var(--white);
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color .15s
+        }
+
+        .fi-group input:focus,
+        .fi-group select:focus {
+            border-color: var(--blue)
+        }
+
+        .fi-group select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+            cursor: pointer
+        }
+
+        .btn-submit-inline {
+            padding: 10px 28px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--t);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .25)
+        }
+
+        .btn-submit-inline:hover {
+            background: #1d4ed8
+        }
+
+        .cap-info {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px
         }
 
         .footer {
             text-align: center;
             margin-top: 40px;
             font-size: 11px;
-            color: var(--text-dim);
+            color: var(--text-dim)
         }
 
         .footer a {
             color: var(--blue);
-            text-decoration: none;
+            text-decoration: none
         }
 
         @keyframes fadeIn {
             from {
-                opacity: 0;
+                opacity: 0
             }
 
             to {
-                opacity: 1;
+                opacity: 1
             }
         }
 
-        @media (max-width:768px) {
+        @media(max-width:768px) {
             .stats {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 1fr
             }
 
             .topbar {
-                padding: 0 16px;
+                padding: 0 16px
             }
         }
 
-        @media (max-width:480px) {
+        @media(max-width:480px) {
             .stats {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr
             }
 
             .search {
-                width: 100%;
+                width: 100%
             }
         }
     </style>
@@ -760,9 +747,7 @@
 <body>
 
     <nav class="topbar">
-        <a href="/" class="brand">
-            <img src="/media/utn_logo.png" alt="UTN Laboratorio" class="brand-logo" />
-        </a>
+        <a href="/" class="brand"><img src="/media/utn_logo.png" alt="UTN Laboratorio" class="brand-logo" /></a>
         <div class="topbar-nav">
             <a href="/" class="nav-pill">Formulario</a>
             <a href="/" class="nav-pill primary">Nueva muestra</a>
@@ -770,7 +755,6 @@
     </nav>
 
     <div class="page">
-
         <div class="page-header">
             <h2>Dashboard</h2>
             <p>Registros del sistema de trazabilidad UTN</p>
@@ -779,25 +763,27 @@
         <div class="stats">
             <div class="stat">
                 <div class="lbl">Total muestras</div>
-                <div class="val">{{ muestras | length }}</div>
+                <div class="val">{{ muestras|length }}</div>
                 <div class="sub">registros activos</div>
             </div>
             <div class="stat green">
                 <div class="lbl">Total cajas</div>
-                <div class="val">{{ cajas | length }}</div>
+                <div class="val">{{ cajas|length }}</div>
                 <div class="sub">en sistema</div>
             </div>
             <div class="stat">
-                <div class="lbl">Ultimo registro</div>
-                <div class="val" style="font-size:17px;margin-top:7px;">
-                    {% if muestras %}{{ muestras[0].created_at.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+                <div class="lbl">Capacidad usada</div>
+                <div class="val">
+                    {% set total_cap = cajas|length * capacidad_max %}
+                    {% if total_cap > 0 %}{{ ((muestras|length / total_cap)*100)|round|int }}%{% else %}—{% endif %}
                 </div>
-                <div class="sub">muestra mas reciente</div>
+                <div class="sub">de {{ cajas|length * capacidad_max }} posiciones</div>
             </div>
             <div class="stat amber">
-                <div class="lbl">Estado</div>
-                <div class="val">Activo</div>
-                <div class="sub">base de datos local</div>
+                <div class="lbl">Último registro</div>
+                <div class="val">{% if muestras %}{{ muestras[0].created_at.strftime('%d/%m/%Y') }}{% else %}—{% endif
+                    %}</div>
+                <div class="sub">{% if muestras %}{{ muestras[0].created_at.strftime('%H:%M') }}{% endif %}</div>
             </div>
         </div>
 
@@ -807,37 +793,20 @@
             <button class="tab-btn" id="tab-c" onclick="switchTab('c',this)">Cajas ({{ cajas|length }})</button>
         </div>
 
-        <!-- MUESTRAS -->
+        <!-- ── PANEL MUESTRAS ────────────────────────────────────────────────────── -->
         <div class="panel active" id="panel-m">
             <div class="toolbar">
-                <input class="search" id="buscar-m" placeholder="Buscar codigo, especie, caja..."
+                <input class="search" id="buscar-m" placeholder="Buscar código, especie, origen..."
                     oninput="buscar('m')" />
-                <button class="btn-filter" id="filterbtn-m" onclick="toggleFiltros('m')">
-                    Filtros <span class="filter-dot" id="fdot-m"></span>
-                </button>
                 <a href="/" class="btn btn-blue">Nueva muestra</a>
                 <span class="count" id="cnt-m">{{ muestras|length }} registros</span>
             </div>
-
-            <div class="filter-strip" id="filters-m">
-                <div><label>Fecha desde</label><input type="date" id="fm-desde" /></div>
-                <div><label>Fecha hasta</label><input type="date" id="fm-hasta" /></div>
-                <div><label>Especie</label><input type="text" id="fm-especie" placeholder="Ej: Lev5" /></div>
-                <div><label>Medio cultivo</label><input type="text" id="fm-medio" placeholder="Ej: YPD" /></div>
-                <div><label>Nivel</label><input type="text" id="fm-nivel" placeholder="Ej: PISO 1" /></div>
-                <div><label>N caja</label><input type="text" id="fm-caja" placeholder="Ej: Caja 1 2024" /></div>
-                <div class="filter-actions">
-                    <button class="btn-sm apply" onclick="aplicarFiltros('m')">Aplicar filtros</button>
-                    <button class="btn-sm clear" onclick="limpiarFiltros('m')">Limpiar</button>
-                </div>
-            </div>
-
             <div class="export-action-bar">
                 <span class="sel-info" id="sel-info-m">Selecciona filas para exportar — o usa <b>Seleccionar
                         todo</b></span>
                 <div class="sep"></div>
                 <button class="btn-selall" onclick="seleccionarTodo('m')">Seleccionar todo</button>
-                <button class="btn-desel" onclick="deseleccionar('m')">Quitar seleccion</button>
+                <button class="btn-desel" onclick="deseleccionar('m')">Quitar selección</button>
                 <div class="sep"></div>
                 <button class="btn-export pdf" id="exp-pdf-m" disabled onclick="exportarSeleccion('m','pdf')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -854,64 +823,69 @@
                     Exportar Excel
                 </button>
             </div>
-
             <div class="table-card">
                 <div class="table-wrap">
                     <table id="tabla-m">
                         <thead>
                             <tr>
-                                <th class="col-check"><input type="checkbox" id="chk-all-m" title="Seleccionar todo"
-                                        onchange="toggleTodo('m', this.checked)" /></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',1)">ID <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',2)">Codigo <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',3)">Especie <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',4)">Caja <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',5)">Tubo <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',6)">Replica <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',7)">Nivel <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-m',8)">Medio <span
-                                        class="sort-arrow">↕</span></th>
+                                <th class="col-check"><input type="checkbox" id="chk-all-m"
+                                        onchange="toggleTodo('m',this.checked)" /></th>
+                                <th>ID</th>
+                                <th>Código</th>
+                                <th>Especie UTN</th>
+                                <th>Caja</th>
+                                <th>Tubo</th>
+                                <th>Réplica</th>
+                                <th>Nivel</th>
+                                <th>Medio</th>
                                 <th>CCMBIOGEM</th>
-                                <th>Ubicacion</th>
-                                <th class="sortable" onclick="sortTable('tabla-m',11)">Fecha <span
-                                        class="sort-arrow">↕</span></th>
+                                <th>Especie</th>
+                                <th>Seguimiento</th>
+                                <th>Id. Tax.</th>
+                                <th>Origen</th>
+                                <th>Cód. Caja</th>
+                                <th>Ubicación</th>
+                                <th>Fecha</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for m in muestras %}
-                            <tr data-id="{{ m.id }}" data-especie="{{ m.codigo_utn_especie }}"
-                                data-medio="{{ m.medio_cultivo }}" data-nivel="{{ m.nivel }}"
-                                data-caja="{{ m.numero_caja }}" data-fecha="{{ m.created_at.strftime('%Y-%m-%d') }}">
+                            <tr data-id="{{ m.id }}">
                                 <td class="col-check"><input type="checkbox" class="row-chk" data-tab="m"
                                         onchange="onRowCheck('m')" /></td>
-                                <td style="color:var(--text-dim);font-size:12px;">#{{ m.id }}</td>
+                                <td style="color:var(--text-dim);font-size:12px">#{{ m.id }}</td>
                                 <td class="code">{{ m.codigo_barra }}</td>
                                 <td>{{ m.codigo_utn_especie }}</td>
                                 <td>{{ m.numero_caja }}</td>
-                                <td style="text-align:center;">{{ m.numero_tubo_en_caja }}</td>
-                                <td style="text-align:center;">{{ m.numero_replica }}</td>
+                                <td style="text-align:center">{{ m.numero_tubo_en_caja }}</td>
+                                <td style="text-align:center">{{ m.numero_replica }}</td>
                                 <td>{{ m.nivel }}</td>
                                 <td>{{ m.medio_cultivo }}</td>
-                                <td style="font-size:12px;">{{ m.numero_muestra_ccmbi_ogem }}</td>
-                                <td
-                                    style="font-size:12px;color:var(--text-mid);max-width:180px;overflow:hidden;text-overflow:ellipsis;">
-                                    {{ m.ubicacion_refrigerador or "—" }}</td>
-                                <td style="font-size:12px;color:var(--text-dim);">{{ m.created_at.strftime('%Y-%m-%d')
+                                <td style="font-size:12px">{{ m.numero_muestra_ccmbi_ogem }}</td>
+                                <td>
+                                    {% if m.especie == 'SI' %}<span class="badge badge-si">SI</span>
+                                    {% else %}<span class="badge badge-no">NO</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if m.seguimiento == 'SI' %}<span class="badge badge-si">SI</span>
+                                    {% else %}<span class="badge badge-no">NO</span>{% endif %}
+                                </td>
+                                <td style="font-size:12px;color:var(--text-mid)">{{ m.identificacion_taxonomica or "—"
                                     }}</td>
+                                <td style="font-size:12px">{{ m.origen_muestra or "—" }}</td>
+                                <td style="font-family:monospace;font-size:12px;color:var(--blue)">{{ m.codigo_para_caja
+                                    or "—" }}</td>
+                                <td style="font-size:12px;color:var(--text-mid);max-width:180px;overflow:hidden;text-overflow:ellipsis"
+                                    title="{{ m.ubicacion_refrigerador }}">{{ m.ubicacion_refrigerador or "—" }}</td>
+                                <td style="font-size:12px;color:var(--text-dim)">{{ m.created_at.strftime('%Y-%m-%d') }}
+                                </td>
                                 <td><button class="act-btn print" data-mid="{{ m.id }}">Imprimir</button></td>
                             </tr>
                             {% endfor %}
                             {% if not muestras %}
                             <tr class="empty-row">
-                                <td colspan="13">No hay muestras registradas aun.</td>
+                                <td colspan="18">No hay muestras registradas aún.</td>
                             </tr>
                             {% endif %}
                         </tbody>
@@ -920,21 +894,64 @@
             </div>
         </div>
 
-        <!-- CAJAS -->
+        <!-- ── PANEL CAJAS ───────────────────────────────────────────────────────── -->
         <div class="panel" id="panel-c">
-            <div class="toolbar">
-                <input class="search" id="buscar-c" placeholder="Buscar nombre, codigo, origen..."
-                    oninput="buscar('c')" />
-                <a href="/" class="btn btn-blue" onclick="irCajas(event)">Nueva caja</a>
-                <span class="count" id="cnt-c">{{ cajas|length }} registros</span>
+
+            <!-- Formulario crear caja -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Registrar nueva caja</h3>
+                    <p>Solo datos de ubicación física — los datos biológicos van en cada muestra</p>
+                </div>
+                <div class="form-card-body">
+                    <form method="post" action="/cajas">
+                        <div class="form-inline">
+                            <div class="fi-group">
+                                <label>Nombre de caja *</label>
+                                <input type="text" name="nombre" required maxlength="100"
+                                    placeholder="Ej: Caja Levaduras 2026" />
+                            </div>
+                            <div class="fi-group">
+                                <label>Congelador *</label>
+                                <select name="congelador" required>
+                                    <option value="">— Seleccione —</option>
+                                    <option value="1">Vertical</option>
+                                    <option value="2">Horizontal</option>
+                                </select>
+                            </div>
+                            <div class="fi-group">
+                                <label>Piso *</label>
+                                <input type="number" name="piso" required min="1" value="1" placeholder="Ej: 1" />
+                            </div>
+                            <div class="fi-group">
+                                <label>Posición *</label>
+                                <input type="number" name="posicion" required min="1" placeholder="Ej: 3" />
+                            </div>
+                            <div class="fi-group">
+                                <label>Fecha *</label>
+                                <input type="date" name="fecha" required />
+                            </div>
+                        </div>
+                        <div class="cap-info">Capacidad máxima por caja: <strong>81 muestras (9×9)</strong>. El sistema
+                            bloquea el registro cuando se alcanza el límite.</div>
+                        <div style="margin-top:16px">
+                            <button type="submit" class="btn-submit-inline">Crear caja</button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
+            <!-- Tabla cajas -->
+            <div class="toolbar">
+                <input class="search" id="buscar-c" placeholder="Buscar nombre, posición..." oninput="buscar('c')" />
+                <span class="count" id="cnt-c">{{ cajas|length }} registros</span>
+            </div>
             <div class="export-action-bar">
                 <span class="sel-info" id="sel-info-c">Selecciona filas para exportar — o usa <b>Seleccionar
                         todo</b></span>
                 <div class="sep"></div>
                 <button class="btn-selall" onclick="seleccionarTodo('c')">Seleccionar todo</button>
-                <button class="btn-desel" onclick="deseleccionar('c')">Quitar seleccion</button>
+                <button class="btn-desel" onclick="deseleccionar('c')">Quitar selección</button>
                 <div class="sep"></div>
                 <button class="btn-export pdf" id="exp-pdf-c" disabled onclick="exportarSeleccion('c','pdf')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -951,85 +968,70 @@
                     Exportar Excel
                 </button>
             </div>
-
             <div class="table-card">
                 <div class="table-wrap">
                     <table id="tabla-c">
                         <thead>
                             <tr>
-                                <th class="col-check"><input type="checkbox" id="chk-all-c" title="Seleccionar todo"
-                                        onchange="toggleTodo('c', this.checked)" /></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',1)">ID <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',2)">Congelador <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',3)">Pos. <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',4)">Nombre <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',5)">Especie <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',6)">Seguimiento <span
-                                        class="sort-arrow">↕</span></th>
-                                <th>Id. taxonomica</th>
-                                <th>Origen</th>
-                                <th>Codigo de caja</th>
-                                <th class="sortable" onclick="sortTable('tabla-c',10)">Fecha <span
-                                        class="sort-arrow">↕</span></th>
-                                <th class="sortable" onclick="sortTable('tabla-c',11)">Registrado <span
-                                        class="sort-arrow">↕</span></th>
+                                <th class="col-check"><input type="checkbox" id="chk-all-c"
+                                        onchange="toggleTodo('c',this.checked)" /></th>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Congelador</th>
+                                <th>Piso</th>
+                                <th>Posición</th>
+                                <th>Fecha</th>
+                                <th>Capacidad</th>
+                                <th>Ocupación</th>
+                                <th>Registrada</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for c in cajas %}
-                            <tr data-id="{{ c.id }}" data-fecha="{{ c.fecha }}">
+                            {% set ocupadas = ocupacion.get(c.id, 0) %}
+                            {% set libres = capacidad_max - ocupadas %}
+                            {% set pct = ((ocupadas / capacidad_max) * 100)|round|int %}
+                            <tr data-id="{{ c.id }}">
                                 <td class="col-check"><input type="checkbox" class="row-chk" data-tab="c"
                                         onchange="onRowCheck('c')" /></td>
-                                <td style="color:var(--text-dim);font-size:12px;">#{{ c.id }}</td>
+                                <td style="color:var(--text-dim);font-size:12px">#{{ c.id }}</td>
+                                <td style="font-weight:700">{{ c.nombre }}</td>
                                 <td>
-                                    {% if c.congelador == 1 %}
-                                    <span class="badge badge-v">Vertical</span>
-                                    {% else %}
-                                    <span class="badge badge-h">Horizontal</span>
-                                    {% endif %}
+                                    {% if c.congelador == 1 %}<span class="badge badge-v">Vertical</span>
+                                    {% else %}<span class="badge badge-h">Horizontal</span>{% endif %}
                                 </td>
-                                <td style="text-align:center;font-weight:700;">{{ c.posicion }}</td>
-                                <td>{{ c.nombre }}</td>
+                                <td style="text-align:center">{{ c.piso }}</td>
+                                <td style="text-align:center;font-weight:700">{{ c.posicion }}</td>
+                                <td>{{ c.fecha }}</td>
+                                <td style="text-align:center">{{ ocupadas }}/{{ capacidad_max }}</td>
                                 <td>
-                                    {% if c.especie == 'SI' %}
-                                    <span class="badge badge-si">SI</span>
-                                    {% else %}
-                                    <span class="badge badge-no">NO</span>
-                                    {% endif %}
+                                    <div class="cap-mini">
+                                        <div class="cap-bar-mini">
+                                            <div class="cap-bar-mini-fill {% if pct>=100 %}full{% elif pct>=75 %}warn{% endif %}"
+                                                data-pct="{{ pct }}"></div>
+                                        </div>
+                                        <span
+                                            class="cap-label {% if pct>=100 %}cap-full{% elif pct>=75 %}cap-warn{% else %}cap-ok{% endif %}">
+                                            {% if pct >= 100 %}LLENA{% else %}{{ libres }} lib.{% endif %}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td style="font-size:12px;color:var(--text-dim)">{{ c.created_at.strftime('%Y-%m-%d') }}
                                 </td>
                                 <td>
-                                    {% if c.seguimiento == 'SI' %}
-                                    <span class="badge badge-si">SI</span>
-                                    {% else %}
-                                    <span class="badge badge-no">NO</span>
-                                    {% endif %}
-                                </td>
-                                <td style="font-size:12px;color:var(--text-mid);">{{ c.identificacion_taxonomica or "—"
-                                    }}</td>
-                                <td style="font-size:12px;color:var(--text-mid);">{{ c.origen_muestra or "—" }}</td>
-                                <td>
-                                    <span class="codigo-caja-cell" title="{{ c.codigo_caja or '—' }}">
-                                        {{ c.codigo_caja or "—" }}
-                                    </span>
-                                </td>
-                                <td style="font-size:12px;">{{ c.fecha }}</td>
-                                <td style="font-size:12px;color:var(--text-dim);">{{ c.created_at.strftime('%Y-%m-%d')
-                                    }}</td>
-                                <td>
+                                    {% if ocupadas == 0 %}
                                     <a href="/cajas/{{ c.id }}/eliminar" class="act-btn del"
-                                        onclick="return confirm('Eliminar la caja #{{ c.id }}?')">Eliminar</a>
+                                        onclick="return confirm('Eliminar la caja #{{ c.id }} ({{ c.nombre }})?')">Eliminar</a>
+                                    {% else %}
+                                    <span style="font-size:12px;color:var(--text-dim);font-style:italic">En uso</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                             {% if not cajas %}
                             <tr class="empty-row">
-                                <td colspan="13">No hay cajas registradas aun.</td>
+                                <td colspan="11">No hay cajas registradas aún.</td>
                             </tr>
                             {% endif %}
                         </tbody>
@@ -1037,7 +1039,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <div class="footer">
@@ -1046,6 +1047,15 @@
     </div>
 
     <script>
+        // Aplicar ancho a barras de capacidad
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.cap-bar-mini-fill[data-pct]').forEach(el => {
+                el.style.width = el.dataset.pct + '%'
+            })
+            const tab = new URLSearchParams(window.location.search).get('tab')
+            if (tab === 'cajas') switchTab('c', document.getElementById('tab-c'))
+        })
+
         function switchTab(name, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
@@ -1053,85 +1063,13 @@
             document.getElementById('panel-' + name).classList.add('active')
         }
 
-        window.addEventListener('load', () => {
-            const params = new URLSearchParams(window.location.search)
-            if (params.get('tab') === 'cajas') switchTab('c', document.getElementById('tab-c'))
-        })
-
         function buscar(tab) {
             const texto = document.getElementById(`buscar-${tab}`).value.toLowerCase()
             const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
             let v = 0
-            rows.forEach(r => {
-                const match = r.innerText.toLowerCase().includes(texto)
-                r.style.display = match ? '' : 'none'
-                if (match) v++
-            })
+            rows.forEach(r => { const m = r.innerText.toLowerCase().includes(texto); r.style.display = m ? '' : 'none'; if (m) v++ })
             document.getElementById(`cnt-${tab}`).textContent = `${v} registro(s)`
             actualizarSelInfo(tab)
-        }
-
-        function toggleFiltros(tab) {
-            document.getElementById(`filters-${tab}`).classList.toggle('open')
-            document.getElementById(`filterbtn-${tab}`).classList.toggle('active')
-        }
-
-        function aplicarFiltros(tab) {
-            const desde = document.getElementById('fm-desde').value
-            const hasta = document.getElementById('fm-hasta').value
-            const especie = document.getElementById('fm-especie').value.toLowerCase()
-            const medio = document.getElementById('fm-medio').value.toLowerCase()
-            const nivel = document.getElementById('fm-nivel').value.toLowerCase()
-            const caja = document.getElementById('fm-caja').value.toLowerCase()
-            const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
-            let v = 0
-            rows.forEach(r => {
-                let show = true
-                if (desde && (r.dataset.fecha || '') < desde) show = false
-                if (hasta && (r.dataset.fecha || '') > hasta) show = false
-                if (especie && !(r.dataset.especie || '').toLowerCase().includes(especie)) show = false
-                if (medio && !(r.dataset.medio || '').toLowerCase().includes(medio)) show = false
-                if (nivel && !(r.dataset.nivel || '').toLowerCase().includes(nivel)) show = false
-                if (caja && !(r.dataset.caja || '').toLowerCase().includes(caja)) show = false
-                r.style.display = show ? '' : 'none'
-                if (show) v++
-            })
-            document.getElementById(`cnt-${tab}`).textContent = `${v} registro(s)`
-            const hay = desde || hasta || especie || medio || nivel || caja
-            document.getElementById('fdot-m').classList.toggle('show', !!hay)
-            actualizarSelInfo(tab)
-        }
-
-        function limpiarFiltros(tab) {
-            ;['desde', 'hasta', 'especie', 'medio', 'nivel', 'caja'].forEach(id => {
-                const el = document.getElementById('fm-' + id)
-                if (el) el.value = ''
-            })
-            aplicarFiltros(tab)
-            document.getElementById('fdot-m').classList.remove('show')
-        }
-
-        const sortState = {}
-        function sortTable(tableId, col) {
-            const tbody = document.querySelector(`#${tableId} tbody`)
-            const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'))
-            const key = tableId + col
-            sortState[key] = !sortState[key]
-            const asc = sortState[key]
-            rows.sort((a, b) => {
-                const va = a.cells[col]?.innerText.trim() || ''
-                const vb = b.cells[col]?.innerText.trim() || ''
-                const na = parseFloat(va.replace(/[^0-9.\-]/g, ''))
-                const nb = parseFloat(vb.replace(/[^0-9.\-]/g, ''))
-                if (!isNaN(na) && !isNaN(nb)) return asc ? na - nb : nb - na
-                return asc ? va.localeCompare(vb) : vb.localeCompare(va)
-            })
-            rows.forEach(r => tbody.appendChild(r))
-            document.querySelectorAll(`#${tableId} th`).forEach((th, i) => {
-                th.classList.toggle('sorted', i === col)
-                const arrow = th.querySelector('.sort-arrow')
-                if (arrow) arrow.textContent = i === col ? (asc ? '↑' : '↓') : '↕'
-            })
         }
 
         function toggleTodo(tab, checked) {
@@ -1145,12 +1083,11 @@
         }
 
         function onRowCheck(tab) {
-            const visibles = Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`))
-                .filter(r => r.style.display !== 'none')
-            const allChecked = visibles.every(r => r.querySelector('.row-chk')?.checked)
-            const chkAll = document.getElementById(`chk-all-${tab}`)
-            if (chkAll) chkAll.checked = allChecked
-            visibles.forEach(r => r.classList.toggle('row-selected', r.querySelector('.row-chk')?.checked || false))
+            const vis = Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)).filter(r => r.style.display !== 'none')
+            const allChk = vis.every(r => r.querySelector('.row-chk')?.checked)
+            const ca = document.getElementById(`chk-all-${tab}`)
+            if (ca) ca.checked = allChk
+            vis.forEach(r => r.classList.toggle('row-selected', r.querySelector('.row-chk')?.checked || false))
             actualizarSelInfo(tab)
         }
 
@@ -1162,34 +1099,26 @@
         }
 
         function actualizarSelInfo(tab) {
-            const ids = getSeleccionados(tab)
-            const n = ids.length
+            const ids = getSeleccionados(tab), n = ids.length
             const info = document.getElementById(`sel-info-${tab}`)
             const pdf = document.getElementById(`exp-pdf-${tab}`)
             const xls = document.getElementById(`exp-xls-${tab}`)
-            if (n === 0) {
-                info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`
-                pdf.disabled = true; xls.disabled = true
-            } else {
-                info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`
-                pdf.disabled = false; xls.disabled = false
-            }
+            if (n === 0) { info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`; pdf.disabled = true; xls.disabled = true }
+            else { info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`; pdf.disabled = false; xls.disabled = false }
         }
 
         function exportarSeleccion(tab, fmt) {
             const ids = getSeleccionados(tab)
             if (!ids.length) return
             const scope = tab === 'm' ? 'muestras' : 'cajas'
-            const p = new URLSearchParams({ fmt, scope, ids: ids.join(',') })
-            window.location.href = `/exportar?${p.toString()}`
+            window.location.href = `/exportar?fmt=${fmt}&scope=${scope}&ids=${ids.join(',')}`
         }
 
         document.addEventListener('click', async function (e) {
             const btn = e.target.closest('.act-btn.print[data-mid]')
             if (!btn) return
             e.preventDefault()
-            const id = btn.dataset.mid
-            const orig = btn.textContent
+            const id = btn.dataset.mid, orig = btn.textContent
             btn.textContent = 'Enviando...'; btn.disabled = true
             const res = await fetch(`/muestras/${id}/print-raw`)
             const data = await res.json()
@@ -1197,12 +1126,6 @@
             btn.disabled = false
             setTimeout(() => { btn.textContent = orig }, 2500)
         })
-
-        function irCajas(e) {
-            e.preventDefault()
-            sessionStorage.setItem('openTab', 'cajas')
-            window.location.href = '/'
-        }
     </script>
 </body>
 

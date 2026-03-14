@@ -28,25 +28,36 @@ os.makedirs("app/static/barcodes", exist_ok=True)
 os.makedirs("app/media", exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.mount("/media", StaticFiles(directory="app/media"), name="media")
+app.mount("/media",  StaticFiles(directory="app/media"),  name="media")
 templates = Jinja2Templates(directory="app/templates")
 Base.metadata.create_all(bind=engine)
+
+CAPACIDAD_CAJA = 81  # 9 × 9
 
 
 # ── UTILIDADES ─────────────────────────────────────────────────────────────────
 
-def calcular_ubicacion(nivel, numero_caja, numero_replica, numero_tubo_en_caja):
-    return f"Nivel {nivel} / Caja {numero_caja} / Réplica {numero_replica} / Tubo {numero_tubo_en_caja}"
+def contar_muestras_en_caja(db: Session, caja_id: int) -> int:
+    return db.query(Muestra).filter(Muestra.caja_id == caja_id).count()
 
 
-def generar_codigo_caja(nombre, especie, seguimiento, identificacion_taxonomica, origen_muestra):
-    """Genera el código legible de la caja combinando los campos clave."""
-    partes = [nombre, f"Esp:{especie}", f"Seg:{seguimiento}"]
-    if identificacion_taxonomica:
-        partes.append(f"Tax:{identificacion_taxonomica}")
-    if origen_muestra:
-        partes.append(f"Orig:{origen_muestra}")
-    return " / ".join(partes)
+def calcular_ubicacion(caja: Caja, replica: int, tubo: int) -> str:
+    tipo = "Vertical" if caja.congelador == 1 else "Horizontal"
+    return (
+        f"Congelador {tipo} / Piso {caja.piso} / "
+        f"Posición {caja.posicion} / Réplica {replica} / Tubo {tubo}"
+    )
+
+
+def generar_codigo_para_caja(caja: Caja, especie: str, origen: str) -> str:
+    """
+    Formato: {V|H}{piso}-{posicion}-{E|e}-{ORIG4}
+    Ejemplo: V1-3-E-UVIL
+    """
+    tipo   = "V" if caja.congelador == 1 else "H"
+    esp    = "E" if especie == "SI" else "e"
+    origen_code = (origen or "XX")[:4].upper().replace(" ", "")
+    return f"{tipo}{caja.piso}-{caja.posicion}-{esp}-{origen_code}"
 
 
 def validar_texto(valor, campo, max_len=100, patron=r"^[\w\s\-\.\/áéíóúÁÉÍÓÚñÑ]+$"):
@@ -93,70 +104,231 @@ def home(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
-    db = SessionLocal()
+    db       = SessionLocal()
     muestras = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
     cajas    = db.query(Caja).order_by(Caja.created_at.desc()).all()
+    ocupacion = {c.id: contar_muestras_en_caja(db, c.id) for c in cajas}
     db.close()
     return templates.TemplateResponse("dashboard.html", {
-        "request": request, "muestras": muestras, "cajas": cajas
+        "request":      request,
+        "muestras":     muestras,
+        "cajas":        cajas,
+        "ocupacion":    ocupacion,
+        "capacidad_max": CAPACIDAD_CAJA,
     })
+
+
+# ── CAJAS — API ────────────────────────────────────────────────────────────────
+
+@app.get("/cajas/disponibles")
+def cajas_disponibles():
+    """Lista todas las cajas con ocupación actual. Usado por el formulario de muestras."""
+    db    = SessionLocal()
+    cajas = db.query(Caja).order_by(Caja.id).all()
+    resultado = []
+    for c in cajas:
+        ocupadas = contar_muestras_en_caja(db, c.id)
+        libres   = CAPACIDAD_CAJA - ocupadas
+        tipo     = "Vertical" if c.congelador == 1 else "Horizontal"
+        resultado.append({
+            "id":       c.id,
+            "nombre":   c.nombre,
+            "tipo":     tipo,
+            "piso":     c.piso,
+            "posicion": c.posicion,
+            "fecha":    c.fecha,
+            "ocupadas": ocupadas,
+            "libres":   libres,
+            "llena":    libres <= 0,
+            "label":    f"{c.nombre} — {tipo}, Piso {c.piso}, Pos. {c.posicion} ({libres} libres)",
+        })
+    db.close()
+    return resultado
+
+
+# ── CAJAS — CRUD ───────────────────────────────────────────────────────────────
+
+@app.post("/cajas")
+def crear_caja(
+    congelador: int = Form(...),
+    posicion:   int = Form(...),
+    piso:       int = Form(1),
+    fecha:      str = Form(...),
+    nombre:     str = Form(...),
+):
+    if congelador not in [1, 2]:
+        raise HTTPException(status_code=422, detail="Congelador debe ser 1 (vertical) o 2 (horizontal).")
+    if posicion < 1:
+        raise HTTPException(status_code=422, detail="La posición debe ser mayor a 0.")
+    if piso < 1:
+        raise HTTPException(status_code=422, detail="El piso debe ser mayor a 0.")
+
+    nombre = validar_texto(nombre, "Nombre de caja", max_len=100)
+
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
+        raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
+
+    db: Session = SessionLocal()
+    existe = db.query(Caja).filter(
+        Caja.congelador == congelador,
+        Caja.piso       == piso,
+        Caja.posicion   == posicion,
+    ).first()
+    if existe:
+        db.close()
+        tipo = "vertical" if congelador == 1 else "horizontal"
+        raise HTTPException(
+            status_code=422,
+            detail=f"Ya existe una caja en el congelador {tipo}, piso {piso}, posición {posicion}."
+        )
+
+    caja = Caja(congelador=congelador, posicion=posicion, piso=piso, fecha=fecha, nombre=nombre)
+    db.add(caja)
+    db.commit()
+    db.close()
+    return RedirectResponse(url="/dashboard?tab=cajas", status_code=303)
+
+
+@app.get("/cajas/{caja_id}/eliminar")
+def eliminar_caja(caja_id: int):
+    db   = SessionLocal()
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    if not caja:
+        db.close()
+        raise HTTPException(status_code=404, detail="Caja no encontrada.")
+    ocupadas = contar_muestras_en_caja(db, caja_id)
+    if ocupadas > 0:
+        db.close()
+        raise HTTPException(
+            status_code=422,
+            detail=f"No se puede eliminar: la caja tiene {ocupadas} muestra(s) asignada(s)."
+        )
+    db.delete(caja)
+    db.commit()
+    db.close()
+    return RedirectResponse(url="/dashboard?tab=cajas", status_code=303)
 
 
 # ── MUESTRAS ───────────────────────────────────────────────────────────────────
 
 @app.post("/muestras")
 def crear_muestra(
-    nivel: str = Form(...),
-    numero_caja: str = Form(...),
-    codigo_utn_especie: str = Form(...),
-    numero_replica: int = Form(...),
-    numero_tubo_en_caja: int = Form(...),
+    caja_id:                   int = Form(...),
+    codigo_utn_especie:        str = Form(...),
+    numero_replica:            int = Form(...),
+    numero_tubo_en_caja:       int = Form(...),
     numero_muestra_ccmbi_ogem: str = Form(...),
-    medio_cultivo: str = Form(...),
+    medio_cultivo:             str = Form(...),
+    especie:                   str = Form("NO"),
+    seguimiento:               str = Form("NO"),
+    identificacion_taxonomica: str = Form(""),
+    origen_muestra:            str = Form(...),
 ):
-    nivel                     = validar_texto(nivel, "Nivel", max_len=50)
-    numero_caja               = validar_texto(numero_caja, "Número de caja", max_len=50)
     codigo_utn_especie        = validar_texto(codigo_utn_especie, "Código UTN especie", max_len=50)
     numero_muestra_ccmbi_ogem = validar_texto(numero_muestra_ccmbi_ogem, "N° muestra CCMBIOGEM", max_len=50)
     medio_cultivo             = validar_texto(medio_cultivo, "Medio de cultivo", max_len=50)
+    origen_muestra            = validar_texto(origen_muestra, "Origen de la muestra", max_len=100)
 
+    if especie not in ("SI", "NO"):
+        especie = "NO"
+    if seguimiento not in ("SI", "NO"):
+        seguimiento = "NO"
     if numero_replica < 1:
         raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
-    if numero_tubo_en_caja < 1:
-        raise HTTPException(status_code=422, detail="El número de tubo en caja debe ser mayor a 0.")
+    if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
+        raise HTTPException(
+            status_code=422,
+            detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}."
+        )
 
     db: Session = SessionLocal()
 
+    # Verificar que la caja existe
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    if not caja:
+        db.close()
+        raise HTTPException(status_code=422, detail="La caja seleccionada no existe.")
+
+    # Validar capacidad 81
+    ocupadas = contar_muestras_en_caja(db, caja_id)
+    if ocupadas >= CAPACIDAD_CAJA:
+        # Buscar sugerencia
+        todas = db.query(Caja).order_by(Caja.id).all()
+        sugerencia = next(
+            (c for c in todas if contar_muestras_en_caja(db, c.id) < CAPACIDAD_CAJA),
+            None
+        )
+        db.close()
+        msg = (
+            f"La caja '{caja.nombre}' está llena "
+            f"({CAPACIDAD_CAJA}/{CAPACIDAD_CAJA} muestras). "
+            f"Selecciona otra caja o crea una nueva."
+        )
+        if sugerencia:
+            libres = CAPACIDAD_CAJA - contar_muestras_en_caja(SessionLocal(), sugerencia.id)
+            msg += f" Sugerencia: '{sugerencia.nombre}' tiene {libres} espacio(s) libre(s)."
+        raise HTTPException(status_code=422, detail=msg)
+
+    # Validar que el tubo no esté ocupado en esa caja
+    tubo_ocupado = db.query(Muestra).filter(
+        Muestra.caja_id             == caja_id,
+        Muestra.numero_tubo_en_caja == numero_tubo_en_caja,
+    ).first()
+    if tubo_ocupado:
+        db.close()
+        raise HTTPException(
+            status_code=422,
+            detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'."
+        )
+
+    # Validar CCMBIOGEM único
     existe = db.query(Muestra).filter(
         Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem
     ).first()
     if existe:
         db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'."
+        )
 
+    # Generar código de barras correlativo
     ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     codigo_barra = f"UTN-2026-{str(nuevo_numero).zfill(5)}"
-    ubicacion    = calcular_ubicacion(nivel, numero_caja, numero_replica, numero_tubo_en_caja)
+
+    numero_caja_label = f"CAJA-{str(caja.id).zfill(3)}"
+    ubicacion         = calcular_ubicacion(caja, numero_replica, numero_tubo_en_caja)
+    codigo_caja       = generar_codigo_para_caja(caja, especie, origen_muestra)
 
     muestra = Muestra(
-        nivel=nivel, numero_caja=numero_caja,
-        codigo_utn_especie=codigo_utn_especie,
-        numero_replica=numero_replica,
-        numero_tubo_en_caja=numero_tubo_en_caja,
-        numero_muestra_ccmbi_ogem=numero_muestra_ccmbi_ogem,
-        medio_cultivo=medio_cultivo,
-        ubicacion_refrigerador=ubicacion,
-        codigo_barra=codigo_barra,
+        caja_id                   = caja_id,
+        numero_caja               = numero_caja_label,
+        nivel                     = f"Piso {caja.piso}",
+        codigo_utn_especie        = codigo_utn_especie,
+        numero_replica            = numero_replica,
+        numero_tubo_en_caja       = numero_tubo_en_caja,
+        numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem,
+        medio_cultivo             = medio_cultivo,
+        ubicacion_refrigerador    = ubicacion,
+        codigo_barra              = codigo_barra,
+        especie                   = especie,
+        seguimiento               = seguimiento,
+        identificacion_taxonomica = identificacion_taxonomica.strip(),
+        origen_muestra            = origen_muestra,
+        codigo_para_caja          = codigo_caja,
     )
     db.add(muestra)
     db.commit()
     db.refresh(muestra)
 
-    code128 = barcode.get("code128", muestra.codigo_barra, writer=ImageWriter())
-    code128.save(f"app/static/barcodes/{muestra.codigo_barra}")
-    db.close()
+    try:
+        code128 = barcode.get("code128", muestra.codigo_barra, writer=ImageWriter())
+        code128.save(f"app/static/barcodes/{muestra.codigo_barra}")
+    except Exception:
+        pass  # no bloquear si falla el barcode
 
+    db.close()
     return RedirectResponse(url=f"/?muestra_id={muestra.id}", status_code=303)
 
 
@@ -197,6 +369,29 @@ def imprimir_raw(muestra_id: int):
     return {"status": "ok"}
 
 
+def _muestra_dict(m: Muestra) -> dict:
+    return {
+        "id":                        m.id,
+        "codigo_barra":              m.codigo_barra,
+        "caja_id":                   m.caja_id,
+        "numero_caja":               m.numero_caja,
+        "nivel":                     m.nivel,
+        "codigo_utn_especie":        m.codigo_utn_especie,
+        "numero_replica":            m.numero_replica,
+        "numero_tubo_en_caja":       m.numero_tubo_en_caja,
+        "numero_muestra_ccmbi_ogem": m.numero_muestra_ccmbi_ogem,
+        "medio_cultivo":             m.medio_cultivo,
+        "ubicacion_refrigerador":    m.ubicacion_refrigerador or "—",
+        "especie":                   m.especie or "NO",
+        "seguimiento":               m.seguimiento or "NO",
+        "identificacion_taxonomica": m.identificacion_taxonomica or "—",
+        "origen_muestra":            m.origen_muestra or "—",
+        "codigo_para_caja":          m.codigo_para_caja or "—",
+        "created_at":                m.created_at.strftime("%Y-%m-%d %H:%M"),
+        "barcode_url":               f"/static/barcodes/{m.codigo_barra}.png",
+    }
+
+
 @app.get("/muestras/{muestra_id}/json")
 def muestra_json(muestra_id: int):
     db      = SessionLocal()
@@ -204,89 +399,7 @@ def muestra_json(muestra_id: int):
     db.close()
     if not muestra:
         raise HTTPException(status_code=404, detail="No existe")
-    return {
-        "id":                        muestra.id,
-        "codigo_barra":              muestra.codigo_barra,
-        "nivel":                     muestra.nivel,
-        "numero_caja":               muestra.numero_caja,
-        "codigo_utn_especie":        muestra.codigo_utn_especie,
-        "numero_replica":            muestra.numero_replica,
-        "numero_tubo_en_caja":       muestra.numero_tubo_en_caja,
-        "numero_muestra_ccmbi_ogem": muestra.numero_muestra_ccmbi_ogem,
-        "medio_cultivo":             muestra.medio_cultivo,
-        "ubicacion_refrigerador":    muestra.ubicacion_refrigerador or "—",
-        "created_at":                muestra.created_at.strftime("%Y-%m-%d %H:%M"),
-        "barcode_url":               f"/static/barcodes/{muestra.codigo_barra}.png",
-    }
-
-
-# ── CAJAS ──────────────────────────────────────────────────────────────────────
-
-@app.post("/cajas")
-def crear_caja(
-    congelador: int = Form(...),
-    posicion: int = Form(...),
-    fecha: str = Form(...),
-    nombre: str = Form(...),
-    especie: str = Form(...),
-    seguimiento: str = Form(...),
-    identificacion_taxonomica: str = Form(""),
-    origen_muestra: str = Form(""),
-):
-    if congelador not in [1, 2]:
-        raise HTTPException(status_code=422, detail="Congelador debe ser 1 (vertical) o 2 (horizontal).")
-    if posicion < 1:
-        raise HTTPException(status_code=422, detail="La posición debe ser mayor a 0.")
-    if especie not in ["SI", "NO"]:
-        raise HTTPException(status_code=422, detail="Especie debe ser SI o NO.")
-    if seguimiento not in ["SI", "NO"]:
-        raise HTTPException(status_code=422, detail="Seguimiento debe ser SI o NO.")
-
-    nombre = validar_texto(nombre, "Nombre", max_len=100)
-
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
-        raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
-
-    tax    = identificacion_taxonomica.strip()
-    origen = origen_muestra.strip()
-
-    codigo_caja = generar_codigo_caja(nombre, especie, seguimiento, tax or None, origen or None)
-
-    db: Session = SessionLocal()
-    existe = db.query(Caja).filter(Caja.congelador == congelador, Caja.posicion == posicion).first()
-    if existe:
-        db.close()
-        tipo = "vertical" if congelador == 1 else "horizontal"
-        raise HTTPException(status_code=422, detail=f"Ya existe una caja en el congelador {tipo} posición {posicion}.")
-
-    caja = Caja(
-        congelador=congelador,
-        posicion=posicion,
-        fecha=fecha,
-        nombre=nombre,
-        especie=especie,
-        seguimiento=seguimiento,
-        identificacion_taxonomica=tax or None,
-        origen_muestra=origen or None,
-        codigo_caja=codigo_caja,
-    )
-    db.add(caja)
-    db.commit()
-    db.close()
-    return RedirectResponse(url="/dashboard?tab=cajas", status_code=303)
-
-
-@app.get("/cajas/{caja_id}/eliminar")
-def eliminar_caja(caja_id: int):
-    db   = SessionLocal()
-    caja = db.query(Caja).filter(Caja.id == caja_id).first()
-    if not caja:
-        db.close()
-        raise HTTPException(status_code=404, detail="Caja no encontrada.")
-    db.delete(caja)
-    db.commit()
-    db.close()
-    return RedirectResponse(url="/dashboard?tab=cajas", status_code=303)
+    return _muestra_dict(muestra)
 
 
 # ── SCAN / BÚSQUEDA ────────────────────────────────────────────────────────────
@@ -300,20 +413,7 @@ def buscar_codigo(codigo: str):
     db.close()
     if not muestra:
         raise HTTPException(status_code=404, detail="Muestra no encontrada")
-    return {
-        "id":                        muestra.id,
-        "codigo_barra":              muestra.codigo_barra,
-        "nivel":                     muestra.nivel,
-        "numero_caja":               muestra.numero_caja,
-        "codigo_utn_especie":        muestra.codigo_utn_especie,
-        "numero_replica":            muestra.numero_replica,
-        "numero_tubo_en_caja":       muestra.numero_tubo_en_caja,
-        "numero_muestra_ccmbi_ogem": muestra.numero_muestra_ccmbi_ogem,
-        "medio_cultivo":             muestra.medio_cultivo,
-        "ubicacion_refrigerador":    muestra.ubicacion_refrigerador or "—",
-        "created_at":                muestra.created_at.strftime("%Y-%m-%d %H:%M"),
-        "barcode_url":               f"/static/barcodes/{muestra.codigo_barra}.png",
-    }
+    return _muestra_dict(muestra)
 
 
 # ── EXPORTAR (PDF + Excel) ─────────────────────────────────────────────────────
@@ -340,46 +440,48 @@ def exportar(
     finally:
         db.close()
 
-    now_str      = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now_str       = datetime.now().strftime("%Y-%m-%d %H:%M")
     fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M")
 
     # ── PDF ────────────────────────────────────────────────────────────────────
     if fmt == "pdf":
         if scope == "muestras":
-            cabeceras = ["ID", "Código", "Especie", "Caja", "Tubo", "Réplica",
-                         "Nivel", "Medio", "CCMBIOGEM", "Ubicación", "Fecha"]
+            cabeceras = [
+                "ID", "Código", "Especie UTN", "Caja", "Tubo", "Réplica",
+                "Medio", "CCMBIOGEM", "Especie", "Seguim.",
+                "Id. Tax.", "Origen", "Cód. Caja", "Ubicación", "Fecha"
+            ]
             filas = [
                 [f"#{m.id}", m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
-                 m.numero_tubo_en_caja, m.numero_replica, m.nivel, m.medio_cultivo,
-                 m.numero_muestra_ccmbi_ogem, m.ubicacion_refrigerador or "—",
+                 m.numero_tubo_en_caja, m.numero_replica, m.medio_cultivo,
+                 m.numero_muestra_ccmbi_ogem, m.especie or "NO", m.seguimiento or "NO",
+                 m.identificacion_taxonomica or "—", m.origen_muestra or "—",
+                 m.codigo_para_caja or "—", m.ubicacion_refrigerador or "—",
                  m.created_at.strftime("%Y-%m-%d")]
                 for m in registros
             ]
             titulo_seccion = "Registro de Muestras"
         else:
-            cabeceras = ["ID", "Congelador", "Pos.", "Nombre", "Especie",
-                         "Seguimiento", "Tax.", "Origen", "Código de caja", "Fecha"]
+            db2 = SessionLocal()
+            cabeceras = ["ID", "Nombre", "Congelador", "Piso", "Posición", "Fecha", "Muestras"]
             filas = [
-                [f"#{c.id}", "Vertical" if c.congelador == 1 else "Horizontal",
-                 c.posicion, c.nombre,
-                 getattr(c, 'especie', '—'), getattr(c, 'seguimiento', '—'),
-                 getattr(c, 'identificacion_taxonomica', None) or "—",
-                 getattr(c, 'origen_muestra', None) or "—",
-                 getattr(c, 'codigo_caja', None) or "—",
-                 c.fecha]
+                [f"#{c.id}", c.nombre,
+                 "Vertical" if c.congelador == 1 else "Horizontal",
+                 c.piso, c.posicion, c.fecha,
+                 contar_muestras_en_caja(db2, c.id)]
                 for c in registros
             ]
+            db2.close()
             titulo_seccion = "Registro de Cajas"
 
         filas_html = "".join(
             "<tr>" + "".join(f"<td>{str(v)}</td>" for v in fila) + "</tr>"
             for fila in filas
         )
-        ths = "".join(f"<th>{h}</th>" for h in cabeceras)
+        ths         = "".join(f"<th>{h}</th>" for h in cabeceras)
         filtros_str = f"IDs seleccionados: {ids}" if ids else "Todos los registros"
 
-        html = f"""
-        <!doctype html><html><head><meta charset="utf-8">
+        html = f"""<!doctype html><html><head><meta charset="utf-8">
         <style>
             @page {{ size: A4 landscape; margin: 15mm 12mm; }}
             body {{ font-family: Arial, sans-serif; font-size: 9px; color: #1e293b; }}
@@ -390,10 +492,9 @@ def exportar(
             .header-right {{ text-align: right; font-size: 8px; color: #94a3b8; }}
             .meta {{ margin-bottom: 10px; font-size: 8px; color: #64748b;
                      background: #f1f5f9; padding: 5px 8px; border-radius: 4px; }}
-            .meta b {{ color: #334155; }}
             table {{ width: 100%; border-collapse: collapse; }}
             th {{ background: #2563eb; color: white; padding: 6px 7px; text-align: left;
-                  font-size: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; }}
+                  font-size: 8px; font-weight: bold; text-transform: uppercase; }}
             td {{ padding: 5px 7px; border-bottom: 1px solid #e2e8f0; font-size: 8.5px; }}
             tr:nth-child(even) td {{ background: #f8fafc; }}
             .footer {{ margin-top: 14px; font-size: 7.5px; color: #94a3b8;
@@ -403,26 +504,20 @@ def exportar(
         </style></head><body>
         <div class="header">
             <div class="header-left">
-                <h1>UTN · Laboratorio</h1>
-                <h2>{titulo_seccion}</h2>
+                <h1>UTN · Laboratorio</h1><h2>{titulo_seccion}</h2>
             </div>
             <div class="header-right">Generado: {now_str}<br>Sistema de Trazabilidad UTN</div>
         </div>
-        <div class="meta"><b>Filtros aplicados:</b> {filtros_str}</div>
+        <div class="meta"><b>Filtros:</b> {filtros_str}</div>
         <div class="total">Total de registros: {len(filas)}</div>
-        <table>
-            <thead><tr>{ths}</tr></thead>
-            <tbody>{filas_html}</tbody>
-        </table>
+        <table><thead><tr>{ths}</tr></thead><tbody>{filas_html}</tbody></table>
         <div class="footer">
-            <span>Maintronic &nbsp;|&nbsp; info@maintronic.com.ec &nbsp;|&nbsp; (593) 02 266 6256</span>
-            <span>UTN · Laboratorio — Sistema de Trazabilidad de Muestras</span>
-        </div>
-        </body></html>
-        """
+            <span>Maintronic · info@maintronic.com.ec · (593) 02 266 6256</span>
+            <span>UTN · Laboratorio — Sistema de Trazabilidad</span>
+        </div></body></html>"""
 
         pdf_bytes = WeasyHTML(string=html).write_pdf()
-        filename  = f"UTN_Laboratorio_{titulo_seccion.replace(' ','_')}_{fecha_archivo}.pdf"
+        filename  = f"UTN_{titulo_seccion.replace(' ','_')}_{fecha_archivo}.pdf"
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -440,20 +535,20 @@ def exportar(
         blanco      = "FFFFFF"
         gris_fila   = "F8FAFC"
         borde_color = "E2E8F0"
-
-        thin  = Side(style="thin", color=borde_color)
-        borde = Border(left=thin, right=thin, top=thin, bottom=thin)
+        thin        = Side(style="thin", color=borde_color)
+        borde       = Border(left=thin, right=thin, top=thin, bottom=thin)
 
         if scope == "muestras":
-            cabeceras      = ["ID", "Código de barras", "Especie", "N° caja", "Tubo en caja",
-                              "N° réplica", "Nivel", "Medio de cultivo", "N° CCMBIOGEM",
-                              "Ubicación refrigerador", "Fecha registro"]
+            cabeceras = [
+                "ID", "Código de barras", "Especie UTN", "Caja", "Tubo", "Réplica",
+                "Medio de cultivo", "N° CCMBIOGEM", "Especie", "Seguimiento",
+                "Id. Taxonómica", "Origen muestra", "Cód. para caja",
+                "Ubicación", "Fecha registro"
+            ]
             titulo_seccion = "Registro de Muestras"
             ws.title       = "Muestras"
         else:
-            cabeceras      = ["ID", "Congelador", "Posición", "Nombre", "Especie",
-                              "Seguimiento", "Id. taxonómica", "Origen muestra",
-                              "Código de caja", "Fecha", "Fecha registro"]
+            cabeceras      = ["ID", "Nombre", "Congelador", "Piso", "Posición", "Fecha", "Registrado", "Muestras"]
             titulo_seccion = "Registro de Cajas"
             ws.title       = "Cajas"
 
@@ -468,10 +563,9 @@ def exportar(
         c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[1].height = 28
 
-        filtros_str2 = f"IDs: {ids}" if ids else "Todos los registros"
         ws.merge_cells(f"A2:{col_last}2")
         c           = ws["A2"]
-        c.value     = f"Generado: {now_str}   —   Filtros: {filtros_str2}   —   Total: {len(registros)} registros"
+        c.value     = f"Generado: {now_str}   —   Total: {len(registros)} registros"
         c.font      = Font(name="Arial", size=9, color="64748B")
         c.fill      = PatternFill("solid", fgColor="F1F5F9")
         c.alignment = Alignment(horizontal="left", vertical="center")
@@ -486,91 +580,73 @@ def exportar(
             c.border    = borde
         ws.row_dimensions[4].height = 22
 
-        if scope == "muestras":
-            for ri, m in enumerate(registros, 5):
-                row_fill = PatternFill("solid", fgColor=(gris_fila if ri % 2 == 0 else blanco))
-                vals = [m.id, m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
-                        m.numero_tubo_en_caja, m.numero_replica, m.nivel, m.medio_cultivo,
-                        m.numero_muestra_ccmbi_ogem, m.ubicacion_refrigerador or "—",
-                        m.created_at.strftime("%Y-%m-%d %H:%M")]
-                for ci, v in enumerate(vals, 1):
-                    c           = ws.cell(row=ri, column=ci, value=v)
-                    c.font      = Font(name="Arial", size=9)
-                    c.fill      = row_fill
-                    c.alignment = Alignment(vertical="center")
-                    c.border    = borde
-                ws.row_dimensions[ri].height = 16
-        else:
-            for ri, caja_obj in enumerate(registros, 5):
-                row_fill = PatternFill("solid", fgColor=(gris_fila if ri % 2 == 0 else blanco))
+        db2 = SessionLocal() if scope != "muestras" else None
+        for ri, reg in enumerate(registros, 5):
+            row_fill = PatternFill("solid", fgColor=(gris_fila if ri % 2 == 0 else blanco))
+            if scope == "muestras":
+                m    = reg
                 vals = [
-                    caja_obj.id,
-                    "Vertical" if caja_obj.congelador == 1 else "Horizontal",
-                    caja_obj.posicion,
-                    caja_obj.nombre,
-                    getattr(caja_obj, 'especie', '—'),
-                    getattr(caja_obj, 'seguimiento', '—'),
-                    getattr(caja_obj, 'identificacion_taxonomica', None) or "—",
-                    getattr(caja_obj, 'origen_muestra', None) or "—",
-                    getattr(caja_obj, 'codigo_caja', None) or "—",
-                    caja_obj.fecha,
-                    caja_obj.created_at.strftime("%Y-%m-%d %H:%M"),
+                    m.id, m.codigo_barra, m.codigo_utn_especie, m.numero_caja,
+                    m.numero_tubo_en_caja, m.numero_replica, m.medio_cultivo,
+                    m.numero_muestra_ccmbi_ogem, m.especie or "NO", m.seguimiento or "NO",
+                    m.identificacion_taxonomica or "—", m.origen_muestra or "—",
+                    m.codigo_para_caja or "—", m.ubicacion_refrigerador or "—",
+                    m.created_at.strftime("%Y-%m-%d %H:%M"),
                 ]
-                for ci, v in enumerate(vals, 1):
-                    c           = ws.cell(row=ri, column=ci, value=v)
-                    c.font      = Font(name="Arial", size=9)
-                    c.fill      = row_fill
-                    c.alignment = Alignment(vertical="center")
-                    c.border    = borde
-                ws.row_dimensions[ri].height = 16
+            else:
+                c_obj = reg
+                vals  = [
+                    c_obj.id, c_obj.nombre,
+                    "Vertical" if c_obj.congelador == 1 else "Horizontal",
+                    c_obj.piso, c_obj.posicion, c_obj.fecha,
+                    c_obj.created_at.strftime("%Y-%m-%d %H:%M"),
+                    contar_muestras_en_caja(db2, c_obj.id),
+                ]
+            for ci, v in enumerate(vals, 1):
+                cell           = ws.cell(row=ri, column=ci, value=v)
+                cell.font      = Font(name="Arial", size=9)
+                cell.fill      = row_fill
+                cell.alignment = Alignment(vertical="center")
+                cell.border    = borde
+            ws.row_dimensions[ri].height = 16
+        if db2:
+            db2.close()
 
         last_row = 4 + len(registros) + 1
         ws.merge_cells(f"A{last_row}:{col_last}{last_row}")
-        c           = ws.cell(row=last_row, column=1, value=f"Total de registros: {len(registros)}")
+        c           = ws.cell(row=last_row, column=1, value=f"Total: {len(registros)}")
         c.font      = Font(name="Arial", bold=True, size=9, color=azul_medio)
         c.fill      = PatternFill("solid", fgColor=azul_claro)
         c.alignment = Alignment(horizontal="right", vertical="center")
         ws.row_dimensions[last_row].height = 18
 
-        ancho_min = {"A": 6, "B": 18, "C": 14, "D": 20, "E": 10, "F": 10,
-                     "G": 16, "H": 18, "I": 34, "J": 12, "K": 16}
         for ci in range(1, ncols + 1):
             col_letter = get_column_letter(ci)
-            max_len = max(
+            max_len    = max(
                 (len(str(ws.cell(row=r, column=ci).value or ""))
                  for r in range(4, last_row + 1)),
                 default=8
             )
-            ws.column_dimensions[col_letter].width = max(
-                ancho_min.get(col_letter, 10),
-                min(max_len + 3, 44)
-            )
+            ws.column_dimensions[col_letter].width = max(10, min(max_len + 3, 44))
 
         ws.freeze_panes = "A5"
 
         ws_info        = wb.create_sheet("Info")
         ws_info["A1"] = "Sistema de Trazabilidad UTN · Laboratorio"
         ws_info["A1"].font = Font(bold=True, size=12)
-        ws_info["A3"] = "Desarrollado por:"
-        ws_info["B3"] = "Maintronic"
-        ws_info["A4"] = "Contacto:"
-        ws_info["B4"] = "info@maintronic.com.ec"
-        ws_info["A5"] = "Teléfono:"
-        ws_info["B5"] = "(593) 02 266 6256 / 09 979 6375"
-        ws_info["A7"] = "Archivo generado:"
-        ws_info["B7"] = now_str
-        ws_info["A8"] = "Sección:"
-        ws_info["B8"] = titulo_seccion
-        ws_info["A9"] = "Total registros:"
-        ws_info["B9"] = len(registros)
+        ws_info["A3"] = "Desarrollado por:"; ws_info["B3"] = "Maintronic"
+        ws_info["A4"] = "Contacto:";         ws_info["B4"] = "info@maintronic.com.ec"
+        ws_info["A5"] = "Teléfono:";         ws_info["B5"] = "(593) 02 266 6256 / 09 979 6375"
+        ws_info["A7"] = "Archivo generado:"; ws_info["B7"] = now_str
+        ws_info["A8"] = "Sección:";          ws_info["B8"] = titulo_seccion
+        ws_info["A9"] = "Total registros:";  ws_info["B9"] = len(registros)
         ws_info.column_dimensions["A"].width = 22
         ws_info.column_dimensions["B"].width = 35
 
         buffer = io.BytesIO()
         wb.save(buffer)
         buffer.seek(0)
-
-        filename = f"UTN_Laboratorio_{titulo_seccion.replace(' ','_')}_{fecha_archivo}.xlsx"
+        filename = f"UTN_{titulo_seccion.replace(' ','_')}_{fecha_archivo}.xlsx"
         return Response(
             content=buffer.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -592,8 +668,7 @@ def generar_pdf_etiqueta(muestra_id: int):
 
     base_path    = os.path.abspath("app/static/barcodes/")
     image_path   = f"file://{base_path}/{muestra.codigo_barra}.png"
-    html_content = f"""
-    <html><head><style>
+    html_content = f"""<html><head><style>
         @page {{ size: 32mm 13mm; margin: 0; }}
         html, body {{ margin: 0; padding: 0; width: 32mm; height: 13mm; }}
         .label {{ width: 32mm; height: 13mm; display: flex; flex-direction: column;
@@ -604,8 +679,7 @@ def generar_pdf_etiqueta(muestra_id: int):
     <body><div class="label">
         <img src="{image_path}">
         <div class="codigo">{muestra.codigo_barra}</div>
-    </div></body></html>
-    """
+    </div></body></html>"""
     pdf = WeasyHTML(string=html_content).write_pdf()
     return Response(content=pdf, media_type="application/pdf")
 
