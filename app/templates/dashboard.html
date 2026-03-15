@@ -552,43 +552,62 @@
         }
 
         .act-btn {
-            padding: 4px 11px;
+            padding: 5px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 600;
             text-decoration: none;
             transition: var(--t);
-            border: 1px solid var(--border);
+            border: 1.5px solid transparent;
             cursor: pointer;
             font-family: var(--font);
-            background: var(--white);
-            color: var(--text-mid)
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px
         }
 
-        .act-btn:hover {
-            background: var(--surface)
+        .act-btn img {
+            width: 16px;
+            height: 16px;
+            display: block;
+            transition: filter .15s
         }
 
         .act-btn.print {
             background: var(--teal-light);
-            color: var(--teal);
             border-color: #a5f3fc
         }
 
+        .act-btn.print img {
+            filter: invert(34%) sepia(87%) saturate(500%) hue-rotate(163deg) brightness(90%)
+        }
+
         .act-btn.print:hover {
-            background: var(--teal);
-            color: white
+            background: var(--teal)
+        }
+
+        .act-btn.print:hover img {
+            filter: brightness(0) invert(1)
         }
 
         .act-btn.del {
             background: var(--red-light);
-            color: var(--red);
             border-color: #fca5a5
         }
 
+        .act-btn.del img {
+            filter: invert(20%) sepia(90%) saturate(600%) hue-rotate(340deg) brightness(90%)
+        }
+
         .act-btn.del:hover {
-            background: var(--red);
-            color: white
+            background: var(--red)
+        }
+
+        .act-btn.del:hover img {
+            filter: brightness(0) invert(1)
         }
 
         .empty-row td {
@@ -712,6 +731,264 @@
             text-decoration: none
         }
 
+        /* MODAL ELIMINAR */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .55);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            animation: fadeIn .15s ease
+        }
+
+        .modal-box {
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, .22);
+            width: 420px;
+            max-width: 92vw;
+            overflow: hidden;
+            animation: popIn .2s ease both
+        }
+
+        .modal-top {
+            background: var(--red-light);
+            border-bottom: 1.5px solid #fca5a5;
+            padding: 20px 24px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        .modal-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .modal-icon img {
+            width: 20px;
+            height: 20px;
+            filter: brightness(0) invert(1)
+        }
+
+        .modal-top h3 {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--red);
+            margin: 0
+        }
+
+        .modal-top p {
+            font-size: 12px;
+            color: #b91c1c;
+            margin: 3px 0 0
+        }
+
+        .modal-body {
+            padding: 20px 24px
+        }
+
+        .modal-data {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 16px
+        }
+
+        .modal-data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px
+        }
+
+        .modal-data-row:not(:last-child) {
+            border-bottom: 1px solid var(--border)
+        }
+
+        .modal-data-row .lbl {
+            color: var(--text-dim);
+            font-weight: 600;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: .04em
+        }
+
+        .modal-data-row .val {
+            color: var(--text);
+            font-weight: 700;
+            font-size: 13px
+        }
+
+        .modal-data-row .val.code {
+            color: var(--blue);
+            font-family: monospace
+        }
+
+        .modal-warning {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            color: #92400e;
+            line-height: 1.5;
+            margin-bottom: 16px
+        }
+
+        .modal-warning b {
+            color: #78350f
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end
+        }
+
+        .modal-btn-cancel {
+            padding: 9px 20px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t)
+        }
+
+        .modal-btn-cancel:hover {
+            background: var(--surface)
+        }
+
+        .modal-btn-delete {
+            padding: 9px 20px;
+            background: var(--red);
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: var(--t);
+            display: flex;
+            align-items: center;
+            gap: 7px
+        }
+
+        .modal-btn-delete:hover {
+            background: #b91c1c
+        }
+
+        .modal-btn-delete:disabled {
+            opacity: .6;
+            cursor: not-allowed
+        }
+
+        .modal-btn-delete img {
+            width: 14px;
+            height: 14px;
+            filter: brightness(0) invert(1)
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(.94) translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--white);
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        .pag-info {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-weight: 600
+        }
+
+        .pag-info b {
+            color: var(--text)
+        }
+
+        .pag-btns {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .pag-btn {
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 6px;
+            border: 1.5px solid var(--border);
+            background: var(--white);
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: var(--t);
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .pag-btn:hover:not(:disabled) {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: var(--blue-light)
+        }
+
+        .pag-btn.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue)
+        }
+
+        .pag-btn:disabled {
+            opacity: .35;
+            cursor: not-allowed
+        }
+
+        .pag-sep {
+            font-size: 13px;
+            color: var(--text-dim);
+            padding: 0 4px
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0
@@ -830,7 +1107,7 @@
                             <tr>
                                 <th class="col-check"><input type="checkbox" id="chk-all-m"
                                         onchange="toggleTodo('m',this.checked)" /></th>
-                                <th>ID</th>
+                                <th style="width:42px;text-align:center">#</th>
                                 <th>Código</th>
                                 <th>Especie UTN</th>
                                 <th>Caja</th>
@@ -854,7 +1131,7 @@
                             <tr data-id="{{ m.id }}">
                                 <td class="col-check"><input type="checkbox" class="row-chk" data-tab="m"
                                         onchange="onRowCheck('m')" /></td>
-                                <td style="color:var(--text-dim);font-size:12px">#{{ m.id }}</td>
+                                <td class="row-num" style="color:var(--text-dim);font-size:12px;text-align:center"></td>
                                 <td class="code">{{ m.codigo_barra }}</td>
                                 <td>{{ m.codigo_utn_especie }}</td>
                                 <td>{{ m.numero_caja }}</td>
@@ -880,7 +1157,17 @@
                                     title="{{ m.ubicacion_refrigerador }}">{{ m.ubicacion_refrigerador or "—" }}</td>
                                 <td style="font-size:12px;color:var(--text-dim)">{{ m.created_at.strftime('%Y-%m-%d') }}
                                 </td>
-                                <td><button class="act-btn print" data-mid="{{ m.id }}">Imprimir</button></td>
+                                <td>
+                                    <div style="display:flex;gap:5px;align-items:center">
+                                        <button class="act-btn print" data-mid="{{ m.id }}" title="Imprimir etiqueta">
+                                            <img src="/static/print.png" alt="Imprimir">
+                                        </button>
+                                        <button class="act-btn del" data-del-mid="{{ m.id }}"
+                                            data-cod="{{ m.codigo_barra }}" title="Eliminar muestra">
+                                            <img src="/static/delete.png" alt="Eliminar">
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                             {% if not muestras %}
@@ -890,6 +1177,10 @@
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+                <div class="pagination" id="pag-m">
+                    <span class="pag-info" id="pag-info-m"></span>
+                    <div class="pag-btns" id="pag-btns-m"></div>
                 </div>
             </div>
         </div>
@@ -975,7 +1266,7 @@
                             <tr>
                                 <th class="col-check"><input type="checkbox" id="chk-all-c"
                                         onchange="toggleTodo('c',this.checked)" /></th>
-                                <th>ID</th>
+                                <th style="width:42px;text-align:center">#</th>
                                 <th>Nombre</th>
                                 <th>Congelador</th>
                                 <th>Piso</th>
@@ -995,7 +1286,7 @@
                             <tr data-id="{{ c.id }}">
                                 <td class="col-check"><input type="checkbox" class="row-chk" data-tab="c"
                                         onchange="onRowCheck('c')" /></td>
-                                <td style="color:var(--text-dim);font-size:12px">#{{ c.id }}</td>
+                                <td class="row-num" style="color:var(--text-dim);font-size:12px;text-align:center"></td>
                                 <td style="font-weight:700">{{ c.nombre }}</td>
                                 <td>
                                     {% if c.congelador == 1 %}<span class="badge badge-v">Vertical</span>
@@ -1037,23 +1328,63 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="pagination" id="pag-c">
+                    <span class="pag-info" id="pag-info-c"></span>
+                    <div class="pag-btns" id="pag-btns-c"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        Desarrollado por <a href="mailto:info@maintronic.com.ec">Maintronic</a>
+        Desarrollado por <a
+            href="/cdn-cgi/l/email-protection#365f585059765b575f58424459585f551855595b185355">Maintronic</a>
         &nbsp;·&nbsp; (593) 02 266 6256 &nbsp;·&nbsp; 09 979 6375
     </div>
 
+    <!-- MODAL CONFIRMAR ELIMINACIÓN -->
+    <div class="modal-overlay" id="modal-eliminar">
+        <div class="modal-box">
+            <div class="modal-top">
+                <div class="modal-icon">
+                    <img src="/static/delete.png" alt="">
+                </div>
+                <div>
+                    <h3>Eliminar muestra</h3>
+                    <p>Esta acción no se puede deshacer</p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-data" id="modal-data"></div>
+                <div class="modal-warning">
+                    Al confirmar, la muestra será eliminada permanentemente del sistema junto con su imagen de código de
+                    barras.
+                    <b>Esta operación queda bajo responsabilidad del usuario.</b>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn-cancel" onclick="cerrarModalEliminar()">Cancelar</button>
+                    <button class="modal-btn-delete" id="modal-btn-confirmar">
+                        <img src="/static/delete.png" alt=""> Sí, eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Aplicar ancho a barras de capacidad
+        const POR_PAGINA = 50
+        const SALTO_PAG = 5
+        const pagActual = { m: 1, c: 1 }
+
+        // ── Inicialización ────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.cap-bar-mini-fill[data-pct]').forEach(el => {
                 el.style.width = el.dataset.pct + '%'
             })
             const tab = new URLSearchParams(window.location.search).get('tab')
             if (tab === 'cajas') switchTab('c', document.getElementById('tab-c'))
+            renderPagina('m')
+            renderPagina('c')
         })
 
         function switchTab(name, btn) {
@@ -1063,16 +1394,134 @@
             document.getElementById('panel-' + name).classList.add('active')
         }
 
+        // ── Paginación ────────────────────────────────────────────────────────────────
+        function todasLasFilas(tab) {
+            return Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`))
+        }
+
+        function filasVisibles(tab) {
+            // Filas que pasan el filtro de búsqueda (no están ocultas por buscar())
+            return todasLasFilas(tab).filter(r => r.dataset.pagHidden !== '1')
+        }
+
+        function renderPagina(tab) {
+            const filas = filasVisibles(tab)
+            const total = filas.length
+            const paginas = Math.max(1, Math.ceil(total / POR_PAGINA))
+
+            // Clamp página actual
+            if (pagActual[tab] > paginas) pagActual[tab] = paginas
+            if (pagActual[tab] < 1) pagActual[tab] = 1
+
+            const inicio = (pagActual[tab] - 1) * POR_PAGINA
+            const fin = inicio + POR_PAGINA
+
+            // Mostrar/ocultar filas según página
+            todasLasFilas(tab).forEach(r => { r.style.display = 'none' })
+            filas.forEach((r, i) => {
+                r.style.display = (i >= inicio && i < fin) ? '' : 'none'
+            })
+
+            // Numerar filas visibles de forma correlativa (global, no por página)
+            filas.forEach((r, i) => {
+                const numCell = r.querySelector('.row-num')
+                if (numCell) numCell.textContent = i + 1
+            })
+
+            // Info de registros
+            const desde = total === 0 ? 0 : inicio + 1
+            const hasta = Math.min(fin, total)
+            document.getElementById(`pag-info-${tab}`).innerHTML =
+                `Mostrando <b>${desde}–${hasta}</b> de <b>${total}</b> registro(s)`
+
+            // Botones de paginación
+            renderBotones(tab, paginas)
+
+            // Actualizar contador del toolbar
+            document.getElementById(`cnt-${tab}`).textContent = `${total} registro(s)`
+        }
+
+        function renderBotones(tab, paginas) {
+            const cont = document.getElementById(`pag-btns-${tab}`)
+            const cur = pagActual[tab]
+            cont.innerHTML = ''
+
+            if (paginas <= 1) return
+
+            // Botón «‹‹ -5»
+            btn(cont, `«${SALTO_PAG}`, cur - SALTO_PAG < 1, () => irPagina(tab, cur - SALTO_PAG))
+            // Botón «‹ Anterior»
+            btn(cont, '‹', cur === 1, () => irPagina(tab, cur - 1))
+
+            // Rango de páginas alrededor de la actual
+            const rango = 2
+            let inicio = Math.max(1, cur - rango)
+            let fin = Math.min(paginas, cur + rango)
+
+            // Ajustar para mostrar siempre 5 botones si es posible
+            if (fin - inicio < rango * 2) {
+                if (inicio === 1) fin = Math.min(paginas, inicio + rango * 2)
+                else inicio = Math.max(1, fin - rango * 2)
+            }
+
+            if (inicio > 1) {
+                btn(cont, '1', false, () => irPagina(tab, 1))
+                if (inicio > 2) sep(cont)
+            }
+
+            for (let p = inicio; p <= fin; p++) {
+                btn(cont, String(p), false, () => irPagina(tab, p), p === cur)
+            }
+
+            if (fin < paginas) {
+                if (fin < paginas - 1) sep(cont)
+                btn(cont, String(paginas), false, () => irPagina(tab, paginas))
+            }
+
+            // Botón «Siguiente ›»
+            btn(cont, '›', cur === paginas, () => irPagina(tab, cur + 1))
+            // Botón «+5 ››»
+            btn(cont, `${SALTO_PAG}»`, cur + SALTO_PAG > paginas, () => irPagina(tab, cur + SALTO_PAG))
+        }
+
+        function btn(cont, label, disabled, onClick, active = false) {
+            const b = document.createElement('button')
+            b.className = 'pag-btn' + (active ? ' active' : '')
+            b.textContent = label
+            b.disabled = disabled
+            if (!disabled) b.addEventListener('click', onClick)
+            cont.appendChild(b)
+        }
+
+        function sep(cont) {
+            const s = document.createElement('span')
+            s.className = 'pag-sep'
+            s.textContent = '…'
+            cont.appendChild(s)
+        }
+
+        function irPagina(tab, p) {
+            pagActual[tab] = p
+            renderPagina(tab)
+            // Scroll suave al inicio de la tabla
+            document.getElementById(`tabla-${tab}`)?.closest('.table-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+
+        // ── Búsqueda (integrada con paginación) ──────────────────────────────────────
         function buscar(tab) {
             const texto = document.getElementById(`buscar-${tab}`).value.toLowerCase()
-            const rows = document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)
-            let v = 0
-            rows.forEach(r => { const m = r.innerText.toLowerCase().includes(texto); r.style.display = m ? '' : 'none'; if (m) v++ })
-            document.getElementById(`cnt-${tab}`).textContent = `${v} registro(s)`
+            todasLasFilas(tab).forEach(r => {
+                const coincide = r.innerText.toLowerCase().includes(texto)
+                r.dataset.pagHidden = coincide ? '0' : '1'
+            })
+            pagActual[tab] = 1   // volver a página 1 al buscar
+            renderPagina(tab)
             actualizarSelInfo(tab)
         }
 
+        // ── Checkboxes ────────────────────────────────────────────────────────────────
         function toggleTodo(tab, checked) {
+            // Solo actúa sobre las filas visibles de la página actual
             document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`).forEach(r => {
                 if (r.style.display === 'none') return
                 const chk = r.querySelector('.row-chk')
@@ -1083,7 +1532,8 @@
         }
 
         function onRowCheck(tab) {
-            const vis = Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`)).filter(r => r.style.display !== 'none')
+            const vis = Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr:not(.empty-row)`))
+                .filter(r => r.style.display !== 'none')
             const allChk = vis.every(r => r.querySelector('.row-chk')?.checked)
             const ca = document.getElementById(`chk-all-${tab}`)
             if (ca) ca.checked = allChk
@@ -1095,6 +1545,7 @@
         function deseleccionar(tab) { document.getElementById(`chk-all-${tab}`).checked = false; toggleTodo(tab, false) }
 
         function getSeleccionados(tab) {
+            // Devuelve TODOS los seleccionados (de cualquier página)
             return Array.from(document.querySelectorAll(`#tabla-${tab} tbody tr.row-selected`)).map(r => r.dataset.id)
         }
 
@@ -1103,8 +1554,13 @@
             const info = document.getElementById(`sel-info-${tab}`)
             const pdf = document.getElementById(`exp-pdf-${tab}`)
             const xls = document.getElementById(`exp-xls-${tab}`)
-            if (n === 0) { info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`; pdf.disabled = true; xls.disabled = true }
-            else { info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`; pdf.disabled = false; xls.disabled = false }
+            if (n === 0) {
+                info.innerHTML = `Selecciona filas para exportar — o usa <b>Seleccionar todo</b>`
+                pdf.disabled = true; xls.disabled = true
+            } else {
+                info.innerHTML = `<b>${n}</b> fila${n > 1 ? 's' : ''} seleccionada${n > 1 ? 's' : ''}`
+                pdf.disabled = false; xls.disabled = false
+            }
         }
 
         function exportarSeleccion(tab, fmt) {
@@ -1114,17 +1570,97 @@
             window.location.href = `/exportar?fmt=${fmt}&scope=${scope}&ids=${ids.join(',')}`
         }
 
+        // ── Modal confirmar eliminación ───────────────────────────────────────────────
+        let pendienteEliminar = null   // { id, codigo, fila }
+
+        function abrirModalEliminar(id, codigo, caja, tubo, origen, fila) {
+            pendienteEliminar = { id, fila }
+
+            document.getElementById('modal-data').innerHTML = `
+        <div class="modal-data-row">
+            <span class="lbl">Código</span>
+            <span class="val code">${codigo}</span>
+        </div>
+        <div class="modal-data-row">
+            <span class="lbl">Caja</span>
+            <span class="val">${caja}</span>
+        </div>
+        <div class="modal-data-row">
+            <span class="lbl">Tubo</span>
+            <span class="val">${tubo}</span>
+        </div>
+        <div class="modal-data-row">
+            <span class="lbl">Origen</span>
+            <span class="val">${origen}</span>
+        </div>`
+
+            document.getElementById('modal-eliminar').classList.add('show')
+        }
+
+        function cerrarModalEliminar() {
+            document.getElementById('modal-eliminar').classList.remove('show')
+            pendienteEliminar = null
+        }
+
+        // Cerrar al hacer clic fuera
+        document.getElementById('modal-eliminar').addEventListener('click', function (e) {
+            if (e.target === this) cerrarModalEliminar()
+        })
+
+        document.getElementById('modal-btn-confirmar').addEventListener('click', async function () {
+            if (!pendienteEliminar) return
+            const { id, fila } = pendienteEliminar
+            this.disabled = true
+            this.innerHTML = '<img src="/static/delete.png" alt=""> Eliminando...'
+
+            const res = await fetch(`/muestras/${id}/eliminar`)
+            if (res.ok || res.redirected) {
+                cerrarModalEliminar()
+                fila.style.transition = 'opacity .3s, transform .3s'
+                fila.style.opacity = '0'
+                fila.style.transform = 'translateX(20px)'
+                setTimeout(() => { fila.remove(); renderPagina('m') }, 300)
+            } else {
+                this.disabled = false
+                this.innerHTML = '<img src="/static/delete.png" alt=""> Sí, eliminar'
+                let msg = 'Error al eliminar.'
+                try { const j = await res.json(); msg = j.detail || msg } catch { }
+                alert(msg)
+            }
+        })
+
+        // ── Acciones de fila (imprimir / eliminar) ────────────────────────────────────
         document.addEventListener('click', async function (e) {
-            const btn = e.target.closest('.act-btn.print[data-mid]')
-            if (!btn) return
-            e.preventDefault()
-            const id = btn.dataset.mid, orig = btn.textContent
-            btn.textContent = 'Enviando...'; btn.disabled = true
-            const res = await fetch(`/muestras/${id}/print-raw`)
-            const data = await res.json()
-            btn.textContent = data.status === 'ok' ? 'Enviado' : 'Error'
-            btn.disabled = false
-            setTimeout(() => { btn.textContent = orig }, 2500)
+            // Imprimir
+            const btnPrint = e.target.closest('.act-btn.print[data-mid]')
+            if (btnPrint) {
+                e.preventDefault()
+                const id = btnPrint.dataset.mid
+                const img = btnPrint.querySelector('img')
+                btnPrint.disabled = true
+                img.style.opacity = '.4'
+                const res = await fetch(`/muestras/${id}/print-raw`)
+                const data = await res.json()
+                img.style.opacity = '1'
+                btnPrint.disabled = false
+                if (data.status !== 'ok') alert('Error al imprimir: ' + (data.error || 'desconocido'))
+                return
+            }
+
+            // Eliminar — abrir modal con datos de la fila
+            const btnDel = e.target.closest('.act-btn.del[data-del-mid]')
+            if (btnDel) {
+                e.preventDefault()
+                const fila = btnDel.closest('tr')
+                const celdas = fila.querySelectorAll('td')
+                // Extraer datos de la fila visualmente
+                const codigo = fila.querySelector('.code')?.textContent?.trim() || btnDel.dataset.cod
+                const caja = celdas[4]?.textContent?.trim() || '—'
+                const tubo = celdas[5]?.textContent?.trim() || '—'
+                const origen = celdas[14]?.textContent?.trim() || '—'
+                abrirModalEliminar(btnDel.dataset.delMid, codigo, caja, tubo, origen, fila)
+                return
+            }
         })
     </script>
 </body>
