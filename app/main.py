@@ -7,6 +7,13 @@ import platform
 import re
 from datetime import datetime
 
+# Cargar variables del archivo .env antes de cualquier otra cosa
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # Si no está instalado, las variables del sistema igual funcionan
+
 from sqlalchemy.orm import Session
 from .db import Base, engine, SessionLocal
 from .models import Muestra, Caja
@@ -22,6 +29,8 @@ from openpyxl.drawing.image import Image as XLImage
 import io
 import base64
 
+from .backup import iniciar_hilo_respaldo, get_estado as backup_estado, get_backups_lista
+
 
 app = FastAPI(title="UTN - Laboratorio")
 
@@ -35,6 +44,9 @@ templates = Jinja2Templates(directory="app/templates")
 Base.metadata.create_all(bind=engine)
 
 CAPACIDAD_CAJA = 81  # 9 × 9
+
+# Arrancar respaldos automáticos en segundo plano
+iniciar_hilo_respaldo()
 
 
 def get_logo_b64() -> str:
@@ -444,6 +456,26 @@ def buscar_codigo(codigo: str):
     if not muestra:
         raise HTTPException(status_code=404, detail="Muestra no encontrada")
     return _muestra_dict(muestra)
+
+
+# ── RESPALDOS ──────────────────────────────────────────────────────────────────
+
+@app.get("/backup/estado")
+def backup_estado_endpoint():
+    """Estado del sistema de respaldos para mostrar en el dashboard."""
+    estado   = backup_estado()
+    backups  = get_backups_lista()
+    return {**estado, "backups": backups}
+
+
+@app.post("/backup/manual")
+def backup_manual():
+    """Dispara un respaldo inmediato desde el dashboard."""
+    from .backup import _hacer_respaldo
+    ok, msg = _hacer_respaldo()
+    if ok:
+        return {"status": "ok", "archivo": msg}
+    raise HTTPException(status_code=500, detail=f"Error en respaldo: {msg}")
 
 
 # ── EXPORTAR (PDF + Excel) ─────────────────────────────────────────────────────

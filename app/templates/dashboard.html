@@ -731,6 +731,223 @@
             text-decoration: none
         }
 
+        /* PANEL RESPALDOS */
+        .backup-panel {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-top: 28px;
+            overflow: hidden
+        }
+
+        .backup-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px
+        }
+
+        .backup-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .backup-icon {
+            width: 36px;
+            height: 36px;
+            background: #eff6ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px
+        }
+
+        .backup-title {
+            font-size: 15px;
+            font-weight: 700
+        }
+
+        .backup-sub {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 1px
+        }
+
+        .backup-body {
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px
+        }
+
+        .backup-estado {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px
+        }
+
+        .backup-estado h4 {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 12px
+        }
+
+        .backup-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .backup-stat-row:last-child {
+            border-bottom: none
+        }
+
+        .backup-stat-row .lbl {
+            color: var(--text-mid);
+            font-weight: 600
+        }
+
+        .backup-stat-row .val {
+            color: var(--text);
+            font-weight: 700
+        }
+
+        .backup-stat-row .val.ok {
+            color: var(--green)
+        }
+
+        .backup-stat-row .val.err {
+            color: var(--red)
+        }
+
+        .backup-lista {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px
+        }
+
+        .backup-lista h4 {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 12px
+        }
+
+        .backup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .backup-item:last-child {
+            border-bottom: none
+        }
+
+        .backup-item .nombre {
+            font-family: monospace;
+            color: var(--blue);
+            font-size: 11.5px
+        }
+
+        .backup-item .meta {
+            color: var(--text-dim);
+            font-size: 11px;
+            text-align: right
+        }
+
+        .backup-empty {
+            color: var(--text-dim);
+            font-size: 12px;
+            font-style: italic
+        }
+
+        .backup-footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px
+        }
+
+        .backup-aviso {
+            font-size: 12px;
+            color: var(--text-mid);
+            max-width: 540px;
+            line-height: 1.5
+        }
+
+        .backup-aviso b {
+            color: var(--text)
+        }
+
+        .btn-backup {
+            padding: 9px 20px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--t);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .2)
+        }
+
+        .btn-backup:hover {
+            background: #1d4ed8
+        }
+
+        .btn-backup:disabled {
+            opacity: .6;
+            cursor: not-allowed
+        }
+
+        .backup-toast {
+            display: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            margin-left: 12px
+        }
+
+        .backup-toast.ok {
+            display: inline-block;
+            background: var(--green-light);
+            color: var(--green);
+            border: 1px solid #a7f3d0
+        }
+
+        .backup-toast.err {
+            display: inline-block;
+            background: var(--red-light);
+            color: var(--red);
+            border: 1px solid #fca5a5
+        }
+
         /* MODAL ELIMINAR */
         .modal-overlay {
             position: fixed;
@@ -1335,11 +1552,55 @@
             </div>
         </div>
     </div>
-
-    <div class="footer">
-        Desarrollado por <a
-            href="/cdn-cgi/l/email-protection#365f585059765b575f58424459585f551855595b185355">Maintronic</a>
-        &nbsp;·&nbsp; (593) 02 266 6256 &nbsp;·&nbsp; 09 979 6375
+    <!-- PANEL RESPALDOS -->
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px 48px">
+        <div class="backup-panel">
+            <div class="backup-header">
+                <div class="backup-header-left">
+                    <div class="backup-icon">💾</div>
+                    <div>
+                        <div class="backup-title">Respaldos automáticos</div>
+                        <div class="backup-sub">Cada 24 horas · Se conservan los últimos 10 respaldos · Carpeta
+                            <code>backups/</code>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center">
+                    <button class="btn-backup" id="btn-backup-manual" onclick="hacerRespaldoManual()">
+                        Hacer respaldo ahora
+                    </button>
+                    <span class="backup-toast" id="backup-toast"></span>
+                </div>
+            </div>
+            <div class="backup-body">
+                <div class="backup-estado">
+                    <h4>Estado del sistema</h4>
+                    <div id="backup-estado-contenido">
+                        <div class="backup-stat-row">
+                            <span class="lbl">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="backup-lista">
+                    <h4>Respaldos disponibles</h4>
+                    <div id="backup-lista-contenido">
+                        <div class="backup-empty">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="backup-footer">
+                <div class="backup-aviso">
+                    Los respaldos se guardan automáticamente en la carpeta <b>backups/</b> junto al sistema.
+                    Para mayor seguridad ante pérdida del equipo, <b>copia esa carpeta periódicamente
+                        a un disco externo o servicio en la nube.</b>
+                    Cada respaldo es una copia exacta de toda la base de datos.
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);text-align:right">
+                    Intervalo: cada 24 h<br>
+                    Retención: 10 respaldos
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL CONFIRMAR ELIMINACIÓN -->
@@ -1359,7 +1620,7 @@
                 <div class="modal-warning">
                     Al confirmar, la muestra será eliminada permanentemente del sistema junto con su imagen de código de
                     barras.
-                    <b>Esta operación queda bajo responsabilidad del usuario.</b>
+                    <b>Esta operación es responsabilidad del usuario y no puede revertirse.</b>
                 </div>
                 <div class="modal-actions">
                     <button class="modal-btn-cancel" onclick="cerrarModalEliminar()">Cancelar</button>
@@ -1369,6 +1630,12 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="footer">
+        Desarrollado por <a
+            href="/cdn-cgi/l/email-protection#365f585059765b575f58424459585f551855595b185355">Maintronic</a>
+        &nbsp;·&nbsp; 09 979 6375
     </div>
 
     <script>
@@ -1662,6 +1929,81 @@
                 return
             }
         })
+
+        // ── Respaldos ─────────────────────────────────────────────────────────────────
+        async function cargarEstadoBackup() {
+            try {
+                const r = await fetch('/backup/estado')
+                const data = await r.json()
+
+                const estadoCont = document.getElementById('backup-estado-contenido')
+                const ultimoStr = data.ultimo ? data.ultimo.substring(0, 16) : 'Nunca'
+                const okClass = data.ultimo_ok ? 'ok' : 'err'
+                const okTxt = data.ultimo_ok ? 'Correcto' : 'Con errores'
+                estadoCont.innerHTML = `
+            <div class="backup-stat-row">
+                <span class="lbl">Último respaldo</span>
+                <span class="val">${ultimoStr}</span>
+            </div>
+            <div class="backup-stat-row">
+                <span class="lbl">Estado</span>
+                <span class="val ${okClass}">${okTxt}</span>
+            </div>
+            <div class="backup-stat-row">
+                <span class="lbl">Respaldos guardados</span>
+                <span class="val">${data.total} de 10</span>
+            </div>
+            ${data.ultimo_error ? `
+            <div class="backup-stat-row">
+                <span class="lbl">Último error</span>
+                <span class="val err" style="font-size:11px;max-width:200px;text-align:right">${data.ultimo_error}</span>
+            </div>` : ''}`
+
+                const listaCont = document.getElementById('backup-lista-contenido')
+                if (!data.backups || data.backups.length === 0) {
+                    listaCont.innerHTML = '<div class="backup-empty">Aún no hay respaldos generados.</div>'
+                } else {
+                    listaCont.innerHTML = data.backups.map(b => `
+                <div class="backup-item">
+                    <span class="nombre">${b.nombre}</span>
+                    <span class="meta">${b.fecha}<br>${b.tamano}</span>
+                </div>`).join('')
+                }
+            } catch (e) {
+                document.getElementById('backup-estado-contenido').innerHTML =
+                    '<div class="backup-empty">No disponible</div>'
+            }
+        }
+
+        async function hacerRespaldoManual() {
+            const btn = document.getElementById('btn-backup-manual')
+            const toast = document.getElementById('backup-toast')
+            btn.disabled = true
+            btn.textContent = 'Creando respaldo...'
+            toast.className = 'backup-toast'
+
+            try {
+                const res = await fetch('/backup/manual', { method: 'POST' })
+                const data = await res.json()
+                if (res.ok) {
+                    toast.textContent = `✓ ${data.archivo}`
+                    toast.className = 'backup-toast ok'
+                    cargarEstadoBackup()
+                } else {
+                    toast.textContent = '✕ ' + (data.detail || 'Error')
+                    toast.className = 'backup-toast err'
+                }
+            } catch (e) {
+                toast.textContent = '✕ Error de conexión'
+                toast.className = 'backup-toast err'
+            }
+
+            btn.disabled = false
+            btn.textContent = 'Hacer respaldo ahora'
+            setTimeout(() => { toast.className = 'backup-toast' }, 6000)
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { cargarEstadoBackup() })
     </script>
 </body>
 
