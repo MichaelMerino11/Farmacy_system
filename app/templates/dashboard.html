@@ -1277,7 +1277,8 @@
                 <div class="lbl">Último registro</div>
                 <div class="val">{% if muestras %}{{ muestras[0].created_at.strftime('%d/%m/%Y') }}{% else %}—{% endif
                     %}</div>
-                <div class="sub">{% if muestras %}{{ muestras[0].created_at.strftime('%H:%M') }}{% endif %}</div>
+                <div class="sub">{% if muestras %}{{ (muestras[0].created_at - timedelta(hours=5)).strftime('%H:%M')
+                    }}{% endif %}</div>
             </div>
         </div>
 
@@ -1635,7 +1636,7 @@
     <div class="footer">
         Desarrollado por <a
             href="/cdn-cgi/l/email-protection#365f585059765b575f58424459585f551855595b185355">Maintronic</a>
-        &nbsp;·&nbsp; 09 979 6375
+        &nbsp;·&nbsp; 09 9979 6375
     </div>
 
     <script>

@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 import platform
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Cargar variables del archivo .env antes de cualquier otra cosa
 try:
@@ -140,6 +140,7 @@ def dashboard(request: Request):
         "cajas":        cajas,
         "ocupacion":    ocupacion,
         "capacidad_max": CAPACIDAD_CAJA,
+        "timedelta":     timedelta,
     })
 
 
@@ -632,21 +633,9 @@ def exportar(
         c.value     = f"UTN · Laboratorio BIOGEM — {titulo_seccion}"
         c.font      = Font(name="Arial", bold=True, size=13, color=blanco)
         c.fill      = PatternFill("solid", fgColor=azul_oscuro)
-        c.alignment = Alignment(horizontal="left", vertical="center", indent=8)
+        c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[1].height = 36
-
-        # Insertar logo si existe
-        logo_path = os.path.join("app", "media", "utn_logo.png")
-        if os.path.exists(logo_path):
-            try:
-                img = XLImage(logo_path)
-                img.height = 30   # altura en puntos (~30px)
-                img.width  = int(img.height * (img.width / img.height)) if img.height else 80
-                img.anchor = "A1"
-                ws.add_image(img)
-            except Exception:
-                pass  # Si falla la imagen, el texto queda igual
-
+        
         ws.merge_cells(f"A2:{col_last}2")
         c           = ws["A2"]
         c.value     = f"Generado: {now_str}   —   Total: {len(registros)} registros"
