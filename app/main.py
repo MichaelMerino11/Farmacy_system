@@ -18,7 +18,9 @@ from weasyprint import HTML as WeasyHTML
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image as XLImage
 import io
+import base64
 
 
 app = FastAPI(title="UTN - Laboratorio")
@@ -33,6 +35,17 @@ templates = Jinja2Templates(directory="app/templates")
 Base.metadata.create_all(bind=engine)
 
 CAPACIDAD_CAJA = 81  # 9 × 9
+
+
+def get_logo_b64() -> str:
+    """Lee utn_logo.png y lo devuelve como data URI base64 para embeber en PDFs."""
+    logo_path = os.path.join("app", "media", "utn_logo.png")
+    try:
+        with open(logo_path, "rb") as f:
+            data = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/png;base64,{data}"
+    except Exception:
+        return ""  # Si falla, el PDF usará solo texto
 
 
 # ── UTILIDADES ─────────────────────────────────────────────────────────────────
@@ -481,14 +494,20 @@ def exportar(
         ths         = "".join(f"<th>{h}</th>" for h in cabeceras)
         filtros_str = f"IDs seleccionados: {ids}" if ids else "Todos los registros"
 
+        logo_b64   = get_logo_b64()
+        logo_html  = (f'<img src="{logo_b64}" style="height:36px;object-fit:contain;">'
+                      if logo_b64 else
+                      '<span style="font-size:16px;font-weight:bold;color:#2563eb;">UTN · Laboratorio BIOGEM</span>')
+
         html = f"""<!doctype html><html><head><meta charset="utf-8">
         <style>
             @page {{ size: A4 landscape; margin: 15mm 12mm; }}
             body {{ font-family: Arial, sans-serif; font-size: 9px; color: #1e293b; }}
             .header {{ margin-bottom: 14px; border-bottom: 2px solid #2563eb; padding-bottom: 10px;
-                       display: flex; justify-content: space-between; align-items: flex-end; }}
-            .header-left h1 {{ font-size: 16px; font-weight: bold; color: #2563eb; margin: 0; }}
-            .header-left h2 {{ font-size: 12px; font-weight: normal; color: #475569; margin: 3px 0 0; }}
+                       display: flex; justify-content: space-between; align-items: center; }}
+            .header-left {{ display: flex; align-items: center; gap: 12px; }}
+            .header-left h2 {{ font-size: 13px; font-weight: bold; color: #1e293b; margin: 0; }}
+            .header-left h3 {{ font-size: 10px; font-weight: normal; color: #475569; margin: 3px 0 0; }}
             .header-right {{ text-align: right; font-size: 8px; color: #94a3b8; }}
             .meta {{ margin-bottom: 10px; font-size: 8px; color: #64748b;
                      background: #f1f5f9; padding: 5px 8px; border-radius: 4px; }}
@@ -504,16 +523,20 @@ def exportar(
         </style></head><body>
         <div class="header">
             <div class="header-left">
-                <h1>UTN · Laboratorio</h1><h2>{titulo_seccion}</h2>
+                {logo_html}
+                <div>
+                    <h2>{titulo_seccion}</h2>
+                    <h3>Sistema de Trazabilidad · BIOGEM</h3>
+                </div>
             </div>
-            <div class="header-right">Generado: {now_str}<br>Sistema de Trazabilidad UTN</div>
+            <div class="header-right">Generado: {now_str}<br>UTN · Laboratorio BIOGEM</div>
         </div>
         <div class="meta"><b>Filtros:</b> {filtros_str}</div>
         <div class="total">Total de registros: {len(filas)}</div>
         <table><thead><tr>{ths}</tr></thead><tbody>{filas_html}</tbody></table>
         <div class="footer">
             <span>Maintronic · info@maintronic.com.ec · (593) 02 266 6256</span>
-            <span>UTN · Laboratorio — Sistema de Trazabilidad</span>
+            <span>UTN · Laboratorio BIOGEM — Sistema de Trazabilidad de Muestras</span>
         </div></body></html>"""
 
         pdf_bytes = WeasyHTML(string=html).write_pdf()
@@ -557,11 +580,11 @@ def exportar(
 
         ws.merge_cells(f"A1:{col_last}1")
         c           = ws["A1"]
-        c.value     = f"UTN · Laboratorio — {titulo_seccion}"
-        c.font      = Font(name="Arial", bold=True, size=14, color=blanco)
+        c.value     = f"UTN · Laboratorio BIOGEM — {titulo_seccion}"
+        c.font      = Font(name="Arial", bold=True, size=13, color=blanco)
         c.fill      = PatternFill("solid", fgColor=azul_oscuro)
         c.alignment = Alignment(horizontal="left", vertical="center")
-        ws.row_dimensions[1].height = 28
+        ws.row_dimensions[1].height = 36
 
         ws.merge_cells(f"A2:{col_last}2")
         c           = ws["A2"]
