@@ -4,6 +4,7 @@
 # COMPILAR DESDE WINDOWS con:
 #   pip install pyinstaller pywin32 uvicorn fastapi sqlalchemy
 #   pip install python-barcode[images] pillow openpyxl weasyprint
+#   pip install python-dotenv
 #   pyinstaller launcher.spec
 #
 # El resultado queda en dist/UTN_Laboratorio/
@@ -17,22 +18,16 @@ block_cipher = None
 
 # ── Datos que deben incluirse ─────────────────────────────────────────────────
 added_files = [
-    # Templates Jinja2
     ('app/templates', 'app/templates'),
-    # Archivos estáticos (barcodes se generan en runtime, pero etiquetas va fijo)
     ('app/static',    'app/static'),
-    # Logo y media
     ('app/media',     'app/media'),
-    # SQLite no necesita archivo separado (lo crea solo)
 ]
 
-# Datos de paquetes externos necesarios
 added_files += collect_data_files('weasyprint')
 added_files += collect_data_files('fonttools')
 
 # ── Hidden imports ────────────────────────────────────────────────────────────
 hidden = [
-    # FastAPI / Starlette internals
     'uvicorn.logging',
     'uvicorn.loops',
     'uvicorn.loops.auto',
@@ -53,41 +48,38 @@ hidden = [
     'fastapi',
     'fastapi.staticfiles',
     'fastapi.templating',
-    # SQLAlchemy
     'sqlalchemy.dialects.sqlite',
     'sqlalchemy.orm',
-    # Jinja2
     'jinja2',
     'jinja2.ext',
-    # Barcode
     'barcode',
     'barcode.writer',
     'PIL',
     'PIL.Image',
-    # WeasyPrint
     'weasyprint',
     'weasyprint.html',
     'weasyprint.document',
     'weasyprint.css',
     'weasyprint.css.computed_values',
     'weasyprint.text.fonts',
-    # openpyxl
     'openpyxl',
     'openpyxl.styles',
     'openpyxl.utils',
-    # win32print para impresora
+    'openpyxl.drawing',
+    'openpyxl.drawing.image',
     'win32print',
     'win32api',
     'pywintypes',
-    # asyncio
     'asyncio',
-    'email.mime.text',
-    'email.mime.multipart',
-    # h11
     'h11',
     'anyio',
     'anyio._backends._asyncio',
     'sniffio',
+    'email.mime.text',
+    'email.mime.multipart',
+    'smtplib',
+    'dotenv',
+    'dotenv.main',
 ]
 
 hidden += collect_submodules('weasyprint')
@@ -126,12 +118,12 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,          # Sin ventana de consola negra
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='app/media/utn_logo.ico',  # Descomentar si tienes un .ico
+    # icon='app/media/utn_logo.ico',
 )
 
 coll = COLLECT(
