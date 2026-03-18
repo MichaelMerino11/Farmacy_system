@@ -1,46 +1,46 @@
 # Entorno virtual
-.venv/
-venv/
-env/
+#.venv/
+#venv/
+#env/
 
 # Python cache
-__pycache__/
-*.py[cod]
-*$py.class
+#__pycache__/
+#*.py[cod]
+#*$py.class
 
 # Base de datos
-data.db
-*.db
+#data.db
+#*.db
 
 # Respaldos automáticos
-backups/
+#backups/
 
 # Archivos generados (barcodes)
-app/static/barcodes/*.png
+#app/static/barcodes/*.png
 
 # Archivos de sistema
-.DS_Store
-Thumbs.db
+#.DS_Store
+#Thumbs.db
 
 # Logs
-*.log
+#*.log
 
 # Archivos de entorno — contiene contraseñas, NUNCA subir
-.env
+#.env
 
 # VSCode
-.vscode/
+#.vscode/
 
 # PyCharm
-.idea/
+#.idea/
 
 # Alembic cache
-alembic/__pycache__/
+#alembic/__pycache__/
 
 # PyInstaller — archivos de compilación, muy pesados y se regeneran
-build/
-dist/
-*.spec
+#build/
+#dist/
+#*.spec
 
 # Node (no es parte del proyecto Python)
 node_modules/
