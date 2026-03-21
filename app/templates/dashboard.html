@@ -1691,10 +1691,11 @@
             })
 
             // Numerar filas visibles de forma correlativa (global, no por página)
-            filas.forEach((r, i) => {
+            filas.forEach((r) => {
                 const numCell = r.querySelector('.row-num')
-                if (numCell) numCell.textContent = i + 1
+                if (numCell) numCell.textContent = r.dataset.id
             })
+
 
             // Info de registros
             const desde = total === 0 ? 0 : inicio + 1
@@ -1779,10 +1780,13 @@
         function buscar(tab) {
             const texto = document.getElementById(`buscar-${tab}`).value.toLowerCase()
             todasLasFilas(tab).forEach(r => {
-                const coincide = r.innerText.toLowerCase().includes(texto)
+                const prevDisplay = r.style.display
+                r.style.display = ''
+                const coincide = !texto || r.innerText.toLowerCase().includes(texto)
+                r.style.display = prevDisplay
                 r.dataset.pagHidden = coincide ? '0' : '1'
             })
-            pagActual[tab] = 1   // volver a página 1 al buscar
+            pagActual[tab] = 1
             renderPagina(tab)
             actualizarSelInfo(tab)
         }

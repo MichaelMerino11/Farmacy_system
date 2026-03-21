@@ -1,18 +1,24 @@
-from fastapi import FastAPI, Request, Form, HTTPException, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+import sys
 import os
 import platform
 import re
 from datetime import datetime, timedelta
 
-# Cargar variables del archivo .env antes de cualquier otra cosa
+from fastapi import FastAPI, Request, Form, HTTPException, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+
+# Cargar .env antes de cualquier otra cosa
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    if getattr(sys, 'frozen', False):
+        _env_path = os.path.join(os.path.dirname(sys.executable), ".env")
+    else:
+        _env_path = ".env"
+    load_dotenv(_env_path)
 except ImportError:
-    pass  # Si no está instalado, las variables del sistema igual funcionan
+    pass
 
 from sqlalchemy.orm import Session
 from .db import Base, engine, SessionLocal
@@ -20,47 +26,96 @@ from .models import Muestra, Caja
 
 import barcode
 from barcode.writer import ImageWriter
-
 from weasyprint import HTML as WeasyHTML
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-from openpyxl.drawing.image import Image as XLImage
 import io
 import base64
 
 from .backup import iniciar_hilo_respaldo, get_estado as backup_estado, get_backups_lista
 
 
+# ── RUTAS ABSOLUTAS ────────────────────────────────────────────────────────────
+# En modo exe (.frozen): archivos en _internal/, datos junto al exe
+# En modo desarrollo: rutas relativas normales desde la raíz del proyecto
+if getattr(sys, 'frozen', False):
+    EXE_DIR      = os.path.dirname(sys.executable)       # dist/UTN_Laboratorio/
+    INTERNAL_DIR = os.path.join(EXE_DIR, "_internal")    # dist/UTN_Laboratorio/_internal/
+else:
+    EXE_DIR      = os.path.abspath(".")
+    INTERNAL_DIR = EXE_DIR
+
+STATIC_DIR    = os.path.join(INTERNAL_DIR, "app", "static")
+MEDIA_DIR     = os.path.join(INTERNAL_DIR, "app", "media")
+TEMPLATES_DIR = os.path.join(INTERNAL_DIR, "app", "templates")
+BARCODES_DIR  = os.path.join(EXE_DIR, "app", "static", "barcodes")  # writable junto al exe
+
+os.makedirs(STATIC_DIR,   exist_ok=True)
+os.makedirs(BARCODES_DIR, exist_ok=True)
+os.makedirs(MEDIA_DIR,    exist_ok=True)
+
+
+# ── APP ────────────────────────────────────────────────────────────────────────
 app = FastAPI(title="UTN - Laboratorio")
 
-os.makedirs("app/static", exist_ok=True)
-os.makedirs("app/static/barcodes", exist_ok=True)
-os.makedirs("app/media", exist_ok=True)
-
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.mount("/media",  StaticFiles(directory="app/media"),  name="media")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/media",  StaticFiles(directory=MEDIA_DIR),  name="media")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 Base.metadata.create_all(bind=engine)
 
 CAPACIDAD_CAJA = 81  # 9 × 9
 
-# Arrancar respaldos automáticos en segundo plano
 iniciar_hilo_respaldo()
 
 
+# ── DETECCIÓN AUTOMÁTICA DE IMPRESORA (Windows) ────────────────────────────────
+def _detectar_puerto_impresora() -> str | None:
+    """
+    Busca automáticamente una impresora térmica conectada por USB.
+    Prueba puertos USB001, USB002, USB003 enviando un byte nulo.
+    Devuelve el primer puerto que responde, o None si no encuentra ninguno.
+    """
+    for n in range(1, 5):
+        puerto = f"USB00{n}"
+        try:
+            path = f"\\\\.\\{puerto}"
+            with open(path, "wb") as f:
+                f.write(b"")  # escribir vacío para probar si el puerto existe
+            return puerto
+        except Exception:
+            continue
+    return None
+
+
+# Cache del puerto detectado para no buscarlo en cada impresión
+_puerto_cache: str | None = None
+_puerto_cache_ts: float = 0.0
+
+
+def _get_puerto_impresora() -> str | None:
+    """Devuelve el puerto USB de la impresora, con caché de 60 segundos."""
+    global _puerto_cache, _puerto_cache_ts
+    import time
+    ahora = time.time()
+    if _puerto_cache and (ahora - _puerto_cache_ts) < 60:
+        return _puerto_cache
+    _puerto_cache = _detectar_puerto_impresora()
+    _puerto_cache_ts = ahora
+    return _puerto_cache
+
+
+# ── UTILIDADES ─────────────────────────────────────────────────────────────────
+
 def get_logo_b64() -> str:
-    """Lee utn_logo.png y lo devuelve como data URI base64 para embeber en PDFs."""
-    logo_path = os.path.join("app", "media", "utn_logo.png")
+    logo_path = os.path.join(MEDIA_DIR, "utn_logo.png")
     try:
         with open(logo_path, "rb") as f:
             data = base64.b64encode(f.read()).decode("utf-8")
         return f"data:image/png;base64,{data}"
     except Exception:
-        return ""  # Si falla, el PDF usará solo texto
+        return ""
 
-
-# ── UTILIDADES ─────────────────────────────────────────────────────────────────
 
 def contar_muestras_en_caja(db: Session, caja_id: int) -> int:
     return db.query(Muestra).filter(Muestra.caja_id == caja_id).count()
@@ -75,12 +130,8 @@ def calcular_ubicacion(caja: Caja, replica: int, tubo: int) -> str:
 
 
 def generar_codigo_para_caja(caja: Caja, especie: str, origen: str) -> str:
-    """
-    Formato: {V|H}{piso}-{posicion}-{E|e}-{ORIG4}
-    Ejemplo: V1-3-E-UVIL
-    """
-    tipo   = "V" if caja.congelador == 1 else "H"
-    esp    = "E" if especie == "SI" else "e"
+    tipo        = "V" if caja.congelador == 1 else "H"
+    esp         = "E" if especie == "SI" else "e"
     origen_code = (origen or "XX")[:4].upper().replace(" ", "")
     return f"{tipo}{caja.piso}-{caja.posicion}-{esp}-{origen_code}"
 
@@ -97,12 +148,40 @@ def validar_texto(valor, campo, max_len=100, patron=r"^[\w\s\-\.\/áéíóúÁÉ
 
 
 def enviar_a_impresora(data: bytes):
+    """
+    Envía datos ESC/POS a la impresora térmica.
+
+    Prioridad en Windows:
+    1. PRINTER_PORT en .env  → escribe directo al puerto (ej: USB001)
+    2. Detección automática  → busca puerto USB disponible
+    3. PRINTER_NAME en .env  → usa win32print con el nombre especificado
+    4. Impresora por defecto → usa win32print con la impresora del sistema
+
+    En Linux/Mac:
+    - PRINTER_PATH en .env   → escribe al dispositivo (default: /dev/usb/lp0)
+    """
     if platform.system() == "Windows":
+        # ── Modo 1 y 2: puerto directo (bypasea el driver) ──────────────────
+        printer_port = os.getenv("PRINTER_PORT", "").strip()
+
+        if not printer_port:
+            # Auto-detectar si no está configurado manualmente
+            printer_port = _get_puerto_impresora() or ""
+
+        if printer_port:
+            try:
+                path = f"\\\\.\\{printer_port}"
+                with open(path, "wb") as p:
+                    p.write(data)
+                return
+            except Exception as e:
+                # Si falla el puerto directo, intentar con win32print
+                pass
+
+        # ── Modo 3 y 4: win32print ───────────────────────────────────────────
         try:
             import win32print
-            printer_name = os.getenv("PRINTER_NAME", None)
-            if not printer_name:
-                printer_name = win32print.GetDefaultPrinter()
+            printer_name = os.getenv("PRINTER_NAME", "").strip() or win32print.GetDefaultPrinter()
             handle = win32print.OpenPrinter(printer_name)
             try:
                 win32print.StartDocPrinter(handle, 1, ("Etiqueta UTN", None, "RAW"))
@@ -113,11 +192,18 @@ def enviar_a_impresora(data: bytes):
                 win32print.EndDocPrinter(handle)
                 win32print.ClosePrinter(handle)
         except ImportError:
-            raise RuntimeError("Falta instalar pywin32. Ejecuta: pip install pywin32")
+            raise RuntimeError("No se encontró impresora. Conecta la impresora por USB e intenta de nuevo.")
+        except Exception as e:
+            raise RuntimeError(f"Error al imprimir: {e}")
+
     else:
+        # ── Linux / Mac ──────────────────────────────────────────────────────
         printer_path = os.getenv("PRINTER_PATH", "/dev/usb/lp0")
-        with open(printer_path, "wb") as printer:
-            printer.write(data)
+        try:
+            with open(printer_path, "wb") as printer:
+                printer.write(data)
+        except Exception as e:
+            raise RuntimeError(f"Error al escribir en {printer_path}: {e}")
 
 
 # ── PÁGINAS ────────────────────────────────────────────────────────────────────
@@ -129,16 +215,16 @@ def home(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
-    db       = SessionLocal()
-    muestras = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
-    cajas    = db.query(Caja).order_by(Caja.created_at.desc()).all()
+    db        = SessionLocal()
+    muestras  = db.query(Muestra).order_by(Muestra.created_at.desc()).all()
+    cajas     = db.query(Caja).order_by(Caja.created_at.desc()).all()
     ocupacion = {c.id: contar_muestras_en_caja(db, c.id) for c in cajas}
     db.close()
     return templates.TemplateResponse("dashboard.html", {
-        "request":      request,
-        "muestras":     muestras,
-        "cajas":        cajas,
-        "ocupacion":    ocupacion,
+        "request":       request,
+        "muestras":      muestras,
+        "cajas":         cajas,
+        "ocupacion":     ocupacion,
         "capacidad_max": CAPACIDAD_CAJA,
         "timedelta":     timedelta,
     })
@@ -148,7 +234,6 @@ def dashboard(request: Request):
 
 @app.get("/cajas/disponibles")
 def cajas_disponibles():
-    """Lista todas las cajas con ocupación actual. Usado por el formulario de muestras."""
     db    = SessionLocal()
     cajas = db.query(Caja).order_by(Caja.id).all()
     resultado = []
@@ -262,40 +347,27 @@ def crear_muestra(
     if numero_replica < 1:
         raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
     if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
-        raise HTTPException(
-            status_code=422,
-            detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}."
-        )
+        raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
 
     db: Session = SessionLocal()
 
-    # Verificar que la caja existe
     caja = db.query(Caja).filter(Caja.id == caja_id).first()
     if not caja:
         db.close()
         raise HTTPException(status_code=422, detail="La caja seleccionada no existe.")
 
-    # Validar capacidad 81
     ocupadas = contar_muestras_en_caja(db, caja_id)
     if ocupadas >= CAPACIDAD_CAJA:
-        # Buscar sugerencia
-        todas = db.query(Caja).order_by(Caja.id).all()
-        sugerencia = next(
-            (c for c in todas if contar_muestras_en_caja(db, c.id) < CAPACIDAD_CAJA),
-            None
-        )
+        todas      = db.query(Caja).order_by(Caja.id).all()
+        sugerencia = next((c for c in todas if contar_muestras_en_caja(db, c.id) < CAPACIDAD_CAJA), None)
         db.close()
-        msg = (
-            f"La caja '{caja.nombre}' está llena "
-            f"({CAPACIDAD_CAJA}/{CAPACIDAD_CAJA} muestras). "
-            f"Selecciona otra caja o crea una nueva."
-        )
+        msg = (f"La caja '{caja.nombre}' está llena ({CAPACIDAD_CAJA}/{CAPACIDAD_CAJA}). "
+               f"Selecciona otra caja o crea una nueva.")
         if sugerencia:
             libres = CAPACIDAD_CAJA - contar_muestras_en_caja(SessionLocal(), sugerencia.id)
             msg += f" Sugerencia: '{sugerencia.nombre}' tiene {libres} espacio(s) libre(s)."
         raise HTTPException(status_code=422, detail=msg)
 
-    # Validar que el tubo no esté ocupado en esa caja
     tubo_ocupado = db.query(Muestra).filter(
         Muestra.caja_id             == caja_id,
         Muestra.numero_tubo_en_caja == numero_tubo_en_caja,
@@ -307,7 +379,6 @@ def crear_muestra(
             detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'."
         )
 
-    # Validar CCMBIOGEM único
     existe = db.query(Muestra).filter(
         Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem
     ).first()
@@ -318,31 +389,26 @@ def crear_muestra(
             detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'."
         )
 
-    # Generar código de barras correlativo
     ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     codigo_barra = f"UTN-2026-{str(nuevo_numero).zfill(5)}"
 
-    numero_caja_label = f"CAJA-{str(caja.id).zfill(3)}"
-    ubicacion         = calcular_ubicacion(caja, numero_replica, numero_tubo_en_caja)
-    codigo_caja       = generar_codigo_para_caja(caja, especie, origen_muestra)
-
     muestra = Muestra(
         caja_id                   = caja_id,
-        numero_caja               = numero_caja_label,
+        numero_caja               = f"CAJA-{str(caja.id).zfill(3)}",
         nivel                     = f"Piso {caja.piso}",
         codigo_utn_especie        = codigo_utn_especie,
         numero_replica            = numero_replica,
         numero_tubo_en_caja       = numero_tubo_en_caja,
         numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem,
         medio_cultivo             = medio_cultivo,
-        ubicacion_refrigerador    = ubicacion,
+        ubicacion_refrigerador    = calcular_ubicacion(caja, numero_replica, numero_tubo_en_caja),
         codigo_barra              = codigo_barra,
         especie                   = especie,
         seguimiento               = seguimiento,
         identificacion_taxonomica = identificacion_taxonomica.strip(),
         origen_muestra            = origen_muestra,
-        codigo_para_caja          = codigo_caja,
+        codigo_para_caja          = generar_codigo_para_caja(caja, especie, origen_muestra),
     )
     db.add(muestra)
     db.commit()
@@ -350,9 +416,9 @@ def crear_muestra(
 
     try:
         code128 = barcode.get("code128", muestra.codigo_barra, writer=ImageWriter())
-        code128.save(f"app/static/barcodes/{muestra.codigo_barra}")
+        code128.save(os.path.join(BARCODES_DIR, muestra.codigo_barra))
     except Exception:
-        pass  # no bloquear si falla el barcode
+        pass
 
     db.close()
     return RedirectResponse(url=f"/?muestra_id={muestra.id}", status_code=303)
@@ -365,9 +431,8 @@ def eliminar_muestra(muestra_id: int):
     if not muestra:
         db.close()
         raise HTTPException(status_code=404, detail="Muestra no encontrada.")
-    # Borrar imagen de barcode si existe
     try:
-        barcode_path = os.path.join("app", "static", "barcodes", muestra.codigo_barra + ".png")
+        barcode_path = os.path.join(BARCODES_DIR, muestra.codigo_barra + ".png")
         if os.path.exists(barcode_path):
             os.remove(barcode_path)
     except Exception:
@@ -376,6 +441,9 @@ def eliminar_muestra(muestra_id: int):
     db.commit()
     db.close()
     return {"status": "ok"}
+
+
+@app.get("/muestras/{muestra_id}/print-raw")
 def imprimir_raw(muestra_id: int):
     db      = SessionLocal()
     muestra = db.query(Muestra).filter(Muestra.id == muestra_id).first()
@@ -463,15 +531,13 @@ def buscar_codigo(codigo: str):
 
 @app.get("/backup/estado")
 def backup_estado_endpoint():
-    """Estado del sistema de respaldos para mostrar en el dashboard."""
-    estado   = backup_estado()
-    backups  = get_backups_lista()
+    estado  = backup_estado()
+    backups = get_backups_lista()
     return {**estado, "backups": backups}
 
 
 @app.post("/backup/manual")
 def backup_manual():
-    """Dispara un respaldo inmediato desde el dashboard."""
     from .backup import _hacer_respaldo
     ok, msg = _hacer_respaldo()
     if ok:
@@ -537,17 +603,13 @@ def exportar(
             db2.close()
             titulo_seccion = "Registro de Cajas"
 
-        filas_html = "".join(
-            "<tr>" + "".join(f"<td>{str(v)}</td>" for v in fila) + "</tr>"
-            for fila in filas
-        )
+        filas_html  = "".join("<tr>" + "".join(f"<td>{str(v)}</td>" for v in f) + "</tr>" for f in filas)
         ths         = "".join(f"<th>{h}</th>" for h in cabeceras)
         filtros_str = f"IDs seleccionados: {ids}" if ids else "Todos los registros"
-
-        logo_b64   = get_logo_b64()
-        logo_html  = (f'<img src="{logo_b64}" style="height:36px;object-fit:contain;">'
-                      if logo_b64 else
-                      '<span style="font-size:16px;font-weight:bold;color:#2563eb;">UTN · Laboratorio BIOGEM</span>')
+        logo_b64    = get_logo_b64()
+        logo_html   = (f'<img src="{logo_b64}" style="height:36px;object-fit:contain;">'
+                       if logo_b64 else
+                       '<span style="font-size:16px;font-weight:bold;color:#2563eb;">UTN · Laboratorio BIOGEM</span>')
 
         html = f"""<!doctype html><html><head><meta charset="utf-8">
         <style>
@@ -574,10 +636,7 @@ def exportar(
         <div class="header">
             <div class="header-left">
                 {logo_html}
-                <div>
-                    <h2>{titulo_seccion}</h2>
-                    <h3>Sistema de Trazabilidad · BIOGEM</h3>
-                </div>
+                <div><h2>{titulo_seccion}</h2><h3>Sistema de Trazabilidad · BIOGEM</h3></div>
             </div>
             <div class="header-right">Generado: {now_str}<br>UTN · Laboratorio BIOGEM</div>
         </div>
@@ -586,7 +645,7 @@ def exportar(
         <table><thead><tr>{ths}</tr></thead><tbody>{filas_html}</tbody></table>
         <div class="footer">
             <span>Maintronic · info@maintronic.com.ec · (593) 02 266 6256</span>
-            <span>UTN · Laboratorio BIOGEM — Sistema de Trazabilidad de Muestras</span>
+            <span>UTN · Laboratorio BIOGEM — Sistema de Trazabilidad</span>
         </div></body></html>"""
 
         pdf_bytes = WeasyHTML(string=html).write_pdf()
@@ -633,9 +692,9 @@ def exportar(
         c.value     = f"UTN · Laboratorio BIOGEM — {titulo_seccion}"
         c.font      = Font(name="Arial", bold=True, size=13, color=blanco)
         c.fill      = PatternFill("solid", fgColor=azul_oscuro)
-        c.alignment = Alignment(horizontal="left", vertical="center")
+        c.alignment = Alignment(horizontal="left", vertical="center", indent=8)
         ws.row_dimensions[1].height = 36
-        
+
         ws.merge_cells(f"A2:{col_last}2")
         c           = ws["A2"]
         c.value     = f"Generado: {now_str}   —   Total: {len(registros)} registros"
@@ -696,8 +755,7 @@ def exportar(
         for ci in range(1, ncols + 1):
             col_letter = get_column_letter(ci)
             max_len    = max(
-                (len(str(ws.cell(row=r, column=ci).value or ""))
-                 for r in range(4, last_row + 1)),
+                (len(str(ws.cell(row=r, column=ci).value or "")) for r in range(4, last_row + 1)),
                 default=8
             )
             ws.column_dimensions[col_letter].width = max(10, min(max_len + 3, 44))
@@ -726,7 +784,7 @@ def exportar(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
         )
 
-    raise HTTPException(status_code=400, detail="Formato no soportado. Usa fmt=pdf o fmt=excel.")
+    raise HTTPException(status_code=400, detail="Formato no soportado.")
 
 
 # ── PDF etiqueta térmica ───────────────────────────────────────────────────────
@@ -739,8 +797,7 @@ def generar_pdf_etiqueta(muestra_id: int):
     if not muestra:
         return {"error": "No existe"}
 
-    base_path    = os.path.abspath("app/static/barcodes/")
-    image_path   = f"file://{base_path}/{muestra.codigo_barra}.png"
+    image_path   = f"file:///{BARCODES_DIR}/{muestra.codigo_barra}.png".replace("\\", "/")
     html_content = f"""<html><head><style>
         @page {{ size: 32mm 13mm; margin: 0; }}
         html, body {{ margin: 0; padding: 0; width: 32mm; height: 13mm; }}
