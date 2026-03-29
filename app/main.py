@@ -147,38 +147,108 @@ def validar_texto(valor, campo, max_len=100, patron=r"^[\w\s\-\.\/áéíóúÁÉ
     return valor
 
 
+def _escribir_dispositivo_usb(device_path: str, data: bytes):
+    """Escribe datos directamente a un dispositivo USB usando CreateFile (kernel32)."""
+    import ctypes
+    import ctypes.wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    GENERIC_WRITE    = 0x40000000
+    OPEN_EXISTING    = 3
+    INVALID_HANDLE   = ctypes.wintypes.HANDLE(-1).value
+
+    handle = kernel32.CreateFileW(
+        device_path, GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None
+    )
+    if handle == INVALID_HANDLE:
+        err = ctypes.get_last_error()
+        raise RuntimeError(f"No se pudo abrir el dispositivo USB (error {err})")
+
+    try:
+        written = ctypes.c_ulong(0)
+        ok = kernel32.WriteFile(handle, data, len(data), ctypes.byref(written), None)
+        if not ok:
+            err = ctypes.get_last_error()
+            raise RuntimeError(f"Error al escribir en el dispositivo USB (error {err})")
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def _detectar_dispositivo_usb_impresora() -> str:
+    """
+    Detecta automáticamente la ruta del dispositivo USB de la impresora.
+    Busca por VID conocidos de impresoras térmicas genéricas.
+    """
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["powershell", "-Command",
+             "Get-PnpDevice | Where-Object {$_.InstanceId -like '*VID_0FE6*' -or "
+             "$_.FriendlyName -like '*UNKNOWNPRINTER*' -or "
+             "$_.FriendlyName -like '*Virtual PRN*'} | "
+             "Select-Object -ExpandProperty InstanceId"],
+            capture_output=True, text=True, timeout=10
+        )
+        lines = [l.strip() for l in result.stdout.strip().splitlines() if l.strip()]
+        for line in lines:
+            if "USBPRINT" in line or "VID_0FE6" in line:
+                # Construir ruta del dispositivo de impresión
+                # InstanceId: USB\VID_0FE6&PID_811E\000000000001
+                # → \\?\USB#VID_0FE6&PID_811E#000000000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}
+                usb_guid = "{28d78fad-5a12-11d1-ae5b-0000f803a8c2}"
+                device_path = "\\\\?\\" + line.replace("\\", "#") + "#" + usb_guid
+                return device_path
+    except Exception:
+        pass
+    return ""
+
+
 def enviar_a_impresora(data: bytes):
     """
     Envía datos ESC/POS a la impresora térmica.
 
     Prioridad en Windows:
-    1. PRINTER_PORT en .env  → escribe directo al puerto (ej: USB001)
-    2. Detección automática  → busca puerto USB disponible
-    3. PRINTER_NAME en .env  → usa win32print con el nombre especificado
-    4. Impresora por defecto → usa win32print con la impresora del sistema
+    1. PRINTER_DEVICE en .env → ruta directa al dispositivo USB (más confiable)
+    2. PRINTER_PORT en .env   → escribe directo al puerto (ej: USB001)
+    3. Detección automática   → busca dispositivo USB por VID conocido
+    4. PRINTER_NAME en .env   → usa win32print con el nombre especificado
+    5. Impresora por defecto  → usa win32print con la impresora del sistema
 
     En Linux/Mac:
-    - PRINTER_PATH en .env   → escribe al dispositivo (default: /dev/usb/lp0)
+    - PRINTER_PATH en .env    → escribe al dispositivo (default: /dev/usb/lp0)
     """
     if platform.system() == "Windows":
-        # ── Modo 1 y 2: puerto directo (bypasea el driver) ──────────────────
+
+        # ── Modo 1: ruta directa al dispositivo USB (CreateFile) ─────────────
+        printer_device = os.getenv("PRINTER_DEVICE", "").strip()
+        if printer_device:
+            try:
+                _escribir_dispositivo_usb(printer_device, data)
+                return
+            except Exception:
+                pass  # Intentar siguiente método
+
+        # ── Modo 2: puerto directo ────────────────────────────────────────────
         printer_port = os.getenv("PRINTER_PORT", "").strip()
-
-        if not printer_port:
-            # Auto-detectar si no está configurado manualmente
-            printer_port = _get_puerto_impresora() or ""
-
         if printer_port:
             try:
                 path = f"\\\\.\\{printer_port}"
                 with open(path, "wb") as p:
                     p.write(data)
                 return
-            except Exception as e:
-                # Si falla el puerto directo, intentar con win32print
+            except Exception:
                 pass
 
-        # ── Modo 3 y 4: win32print ───────────────────────────────────────────
+        # ── Modo 3: auto-detección por VID ────────────────────────────────────
+        device_path = _detectar_dispositivo_usb_impresora()
+        if device_path:
+            try:
+                _escribir_dispositivo_usb(device_path, data)
+                return
+            except Exception:
+                pass
+
+        # ── Modo 4 y 5: win32print ────────────────────────────────────────────
         try:
             import win32print
             printer_name = os.getenv("PRINTER_NAME", "").strip() or win32print.GetDefaultPrinter()
@@ -815,6 +885,23 @@ def generar_pdf_etiqueta(muestra_id: int):
 
 
 # ── CALIBRACIÓN ────────────────────────────────────────────────────────────────
+
+@app.get("/debug/printer")
+def debug_printer():
+    device  = os.getenv("PRINTER_DEVICE", "NO_DEVICE")
+    port    = os.getenv("PRINTER_PORT", "NO_PORT")
+    name    = os.getenv("PRINTER_NAME", "NO_NAME")
+    exe_dir = EXE_DIR
+    env_path = os.path.join(EXE_DIR, ".env")
+    env_exists = os.path.exists(env_path)
+    return {
+        "PRINTER_DEVICE": device,
+        "PRINTER_PORT":   port,
+        "PRINTER_NAME":   name,
+        "EXE_DIR":        exe_dir,
+        "env_path":       env_path,
+        "env_exists":     env_exists,
+    }
 
 @app.get("/calibrar/{salto}")
 def calibrar(salto: int):
