@@ -389,6 +389,40 @@ def eliminar_caja(caja_id: int):
     db.close()
     return RedirectResponse(url="/dashboard?tab=cajas", status_code=303)
 
+@app.post("/cajas/{caja_id}/eliminar-forzado")
+def eliminar_caja_forzado(caja_id: int):
+    db   = SessionLocal()
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    if not caja:
+        db.close()
+        raise HTTPException(status_code=404, detail="Caja no encontrada.")
+    # Eliminar todas las muestras asociadas primero
+    muestras = db.query(Muestra).filter(Muestra.caja_id == caja_id).all()
+    for m in muestras:
+        try:
+            barcode_path = os.path.join(BARCODES_DIR, m.codigo_barra + ".png")
+            if os.path.exists(barcode_path):
+                os.remove(barcode_path)
+        except Exception:
+            pass
+        db.delete(m)
+    db.delete(caja)
+    db.commit()
+    db.close()
+    return {"status": "ok"}
+
+@app.post("/cajas/{caja_id}/editar-nombre")
+def editar_nombre_caja(caja_id: int, nombre: str = Form(...)):
+    nombre = validar_texto(nombre, "Nombre de caja", max_len=100)
+    db: Session = SessionLocal()
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    if not caja:
+        db.close()
+        raise HTTPException(status_code=404, detail="Caja no encontrada.")
+    caja.nombre = nombre
+    db.commit()
+    db.close()
+    return {"status": "ok", "nombre": nombre}
 
 # ── MUESTRAS ───────────────────────────────────────────────────────────────────
 
@@ -535,7 +569,13 @@ def imprimir_raw(muestra_id: int):
     data += b'\x1b\x4a\x04'
     data += b'\x1b\x4d\x01'
     data += b'\x1d\x21\x00'
-    data += codigo_texto.encode()
+    
+    if muestra.numero_replica and muestra.numero_replica > 1:
+        etiqueta_texto = f"{codigo_texto} / R{muestra.numero_replica}"
+    else:
+        etiqueta_texto = codigo_texto
+    data += etiqueta_texto.encode()
+
     data += b'\n'
     salto_dots = 50  # valor calibrado — NO tocar
     data += b'\x1b\x4a' + bytes([salto_dots])
