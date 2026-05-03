@@ -888,7 +888,7 @@ def generar_pdf_etiqueta(muestra_id: int):
 
 @app.get("/debug/printer")
 def debug_printer():
-    device  = os.getenv("PRINTER_DEVICE", "NO_DEVICE")
+    device  = os.getenv("PRINTER_DEVICE", "NO_DE    VICE")
     port    = os.getenv("PRINTER_PORT", "NO_PORT")
     name    = os.getenv("PRINTER_NAME", "NO_NAME")
     exe_dir = EXE_DIR
