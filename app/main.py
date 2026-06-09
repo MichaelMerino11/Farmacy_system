@@ -438,6 +438,7 @@ def crear_muestra(
     seguimiento:               str = Form("NO"),
     identificacion_taxonomica: str = Form(""),
     origen_muestra:            str = Form(...),
+    cantidad_repeticiones:     int = Form(1),
 ):
     codigo_utn_especie        = validar_texto(codigo_utn_especie, "Código UTN especie", max_len=50)
     numero_muestra_ccmbi_ogem = validar_texto(numero_muestra_ccmbi_ogem, "N° muestra CCMBIOGEM", max_len=50)
@@ -450,6 +451,8 @@ def crear_muestra(
         seguimiento = "NO"
     if numero_replica < 1:
         raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
+    if cantidad_repeticiones < 1 or cantidad_repeticiones > CAPACIDAD_CAJA:
+        raise HTTPException(status_code=422, detail=f"La cantidad de repeticiones debe estar entre 1 y {CAPACIDAD_CAJA}.")
     if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
         raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
 
@@ -461,72 +464,185 @@ def crear_muestra(
         raise HTTPException(status_code=422, detail="La caja seleccionada no existe.")
 
     ocupadas = contar_muestras_en_caja(db, caja_id)
-    if ocupadas >= CAPACIDAD_CAJA:
-        todas      = db.query(Caja).order_by(Caja.id).all()
-        sugerencia = next((c for c in todas if contar_muestras_en_caja(db, c.id) < CAPACIDAD_CAJA), None)
+    if ocupadas + cantidad_repeticiones > CAPACIDAD_CAJA:
+        libres = CAPACIDAD_CAJA - ocupadas
         db.close()
-        msg = (f"La caja '{caja.nombre}' está llena ({CAPACIDAD_CAJA}/{CAPACIDAD_CAJA}). "
-               f"Selecciona otra caja o crea una nueva.")
-        if sugerencia:
-            libres = CAPACIDAD_CAJA - contar_muestras_en_caja(SessionLocal(), sugerencia.id)
-            msg += f" Sugerencia: '{sugerencia.nombre}' tiene {libres} espacio(s) libre(s)."
-        raise HTTPException(status_code=422, detail=msg)
+        raise HTTPException(status_code=422, detail=f"No hay espacio suficiente. La caja tiene {libres} espacio(s) libre(s) y necesitas {cantidad_repeticiones}.")
 
+    tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_id).all()}
+    if numero_tubo_en_caja in tubos_ocupados:
+        db.close()
+        raise HTTPException(status_code=422, detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'.")
+    tubos_necesarios = []
+    tubo_actual = numero_tubo_en_caja
+    for _ in range(cantidad_repeticiones):
+        while tubo_actual in tubos_ocupados and tubo_actual <= CAPACIDAD_CAJA:
+            tubo_actual += 1
+        if tubo_actual > CAPACIDAD_CAJA:
+            db.close()
+            raise HTTPException(status_code=422, detail="No hay suficientes tubos disponibles desde el tubo indicado.")
+        tubos_necesarios.append(tubo_actual)
+        tubos_ocupados.add(tubo_actual)
+        tubo_actual += 1
+    existe = db.query(Muestra).filter(Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem).first()
+    if existe:
+        db.close()
+        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+    ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
+    nuevo_numero = 1 if not ultimo else ultimo.id + 1
+    while db.query(Muestra).filter(Muestra.codigo_barra == f"UTN-2026-{str(nuevo_numero).zfill(5)}").first():
+        nuevo_numero += 1
+    primera_muestra = None
+    for i, tubo in enumerate(tubos_necesarios):
+        replica_num = numero_replica + i
+        cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
+        m = Muestra(
+            caja_id=caja_id,
+            numero_caja=f"CAJA-{str(caja.id).zfill(3)}",
+            nivel=f"Piso {caja.piso}",
+            codigo_utn_especie=codigo_utn_especie,
+            numero_replica=replica_num,
+            numero_tubo_en_caja=tubo,
+            numero_muestra_ccmbi_ogem=(numero_muestra_ccmbi_ogem if i == 0 else f"{numero_muestra_ccmbi_ogem}-R{replica_num}"),
+            medio_cultivo=medio_cultivo,
+            ubicacion_refrigerador=calcular_ubicacion(caja, replica_num, tubo),
+            codigo_barra=cb,
+            especie=especie,
+            seguimiento=seguimiento,
+            identificacion_taxonomica=identificacion_taxonomica.strip(),
+            origen_muestra=origen_muestra,
+            codigo_para_caja=generar_codigo_para_caja(caja, especie, origen_muestra),
+        )
+        db.add(m)
+        if i == 0:
+            primera_muestra = m
+    db.commit()
+    db.refresh(primera_muestra)
+    for i in range(cantidad_repeticiones):
+        cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
+        try:
+            code128 = barcode.get("code128", cb, writer=ImageWriter())
+            code128.save(os.path.join(BARCODES_DIR, cb))
+        except Exception:
+            pass
+    db.close()
+    return RedirectResponse(url=f"/?muestra_id={primera_muestra.id}", status_code=303)
+
+
+@app.get("/muestras/{muestra_id}/info-mover")
+def info_mover_muestra(muestra_id: int, caja_destino_id: int = Query(...)):
+    db = SessionLocal()
+    muestra = db.query(Muestra).filter(Muestra.id == muestra_id).first()
+    caja_destino = db.query(Caja).filter(Caja.id == caja_destino_id).first()
+    if not muestra or not caja_destino:
+        db.close()
+        raise HTTPException(status_code=404, detail="Muestra o caja no encontrada.")
+    ocupadas = contar_muestras_en_caja(db, caja_destino_id)
+    if ocupadas >= CAPACIDAD_CAJA:
+        db.close()
+        raise HTTPException(status_code=422, detail="La caja destino está llena.")
+    tubo_propuesto = muestra.numero_tubo_en_caja
     tubo_ocupado = db.query(Muestra).filter(
-        Muestra.caja_id             == caja_id,
-        Muestra.numero_tubo_en_caja == numero_tubo_en_caja,
+        Muestra.caja_id == caja_destino_id,
+        Muestra.numero_tubo_en_caja == tubo_propuesto,
+    ).first()
+    tubo_cambiado = False
+    if tubo_ocupado:
+        tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_destino_id).all()}
+        tubo_propuesto = next((t for t in range(1, CAPACIDAD_CAJA + 1) if t not in tubos_ocupados), None)
+        tubo_cambiado = True
+    nuevo_codigo_para_caja = generar_codigo_para_caja(caja_destino, muestra.especie, muestra.origen_muestra)
+    nueva_ubicacion = calcular_ubicacion(caja_destino, muestra.numero_replica, tubo_propuesto)
+    db.close()
+    return {
+        "tubo_propuesto": tubo_propuesto,
+        "tubo_cambiado": tubo_cambiado,
+        "tubo_original": muestra.numero_tubo_en_caja,
+        "nuevo_codigo_para_caja": nuevo_codigo_para_caja,
+        "nueva_ubicacion": nueva_ubicacion,
+        "caja_destino_nombre": caja_destino.nombre,
+        "libres": CAPACIDAD_CAJA - ocupadas,
+    }
+
+@app.post("/muestras/{muestra_id}/mover")
+def mover_muestra(muestra_id: int, caja_destino_id: int = Form(...)):
+    db = SessionLocal()
+    muestra = db.query(Muestra).filter(Muestra.id == muestra_id).first()
+    caja_destino = db.query(Caja).filter(Caja.id == caja_destino_id).first()
+    if not muestra or not caja_destino:
+        db.close()
+        raise HTTPException(status_code=404, detail="Muestra o caja no encontrada.")
+    ocupadas = contar_muestras_en_caja(db, caja_destino_id)
+    if ocupadas >= CAPACIDAD_CAJA:
+        db.close()
+        raise HTTPException(status_code=422, detail="La caja destino está llena.")
+    tubo_propuesto = muestra.numero_tubo_en_caja
+    tubo_ocupado = db.query(Muestra).filter(
+        Muestra.caja_id == caja_destino_id,
+        Muestra.numero_tubo_en_caja == tubo_propuesto,
     ).first()
     if tubo_ocupado:
-        db.close()
-        raise HTTPException(
-            status_code=422,
-            detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'."
-        )
+        tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_destino_id).all()}
+        tubo_propuesto = next((t for t in range(1, CAPACIDAD_CAJA + 1) if t not in tubos_ocupados), None)
+    muestra.caja_id               = caja_destino.id
+    muestra.numero_caja           = f"CAJA-{str(caja_destino.id).zfill(3)}"
+    muestra.nivel                 = f"Piso {caja_destino.piso}"
+    muestra.numero_tubo_en_caja   = tubo_propuesto
+    muestra.ubicacion_refrigerador = calcular_ubicacion(caja_destino, muestra.numero_replica, tubo_propuesto)
+    muestra.codigo_para_caja      = generar_codigo_para_caja(caja_destino, muestra.especie, muestra.origen_muestra)
+    db.commit()
+    db.close()
+    return {"status": "ok"}
 
+@app.post("/muestras/{muestra_id}/editar")
+def editar_muestra(
+    muestra_id:                int,
+    codigo_utn_especie:        str = Form(...),
+    numero_replica:            int = Form(...),
+    numero_muestra_ccmbi_ogem: str = Form(...),
+    medio_cultivo:             str = Form(...),
+    especie:                   str = Form("NO"),
+    seguimiento:               str = Form("NO"),
+    identificacion_taxonomica: str = Form(""),
+    origen_muestra:            str = Form(...),
+):
+    codigo_utn_especie        = validar_texto(codigo_utn_especie, "Código UTN especie", max_len=50)
+    numero_muestra_ccmbi_ogem = validar_texto(numero_muestra_ccmbi_ogem, "N° muestra CCMBIOGEM", max_len=50)
+    medio_cultivo             = validar_texto(medio_cultivo, "Medio de cultivo", max_len=50)
+    origen_muestra            = validar_texto(origen_muestra, "Origen de la muestra", max_len=100)
+    if especie not in ("SI", "NO"):
+        especie = "NO"
+    if seguimiento not in ("SI", "NO"):
+        seguimiento = "NO"
+    if numero_replica < 1:
+        raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
+    db: Session = SessionLocal()
+    muestra = db.query(Muestra).filter(Muestra.id == muestra_id).first()
+    if not muestra:
+        db.close()
+        raise HTTPException(status_code=404, detail="Muestra no encontrada.")
     existe = db.query(Muestra).filter(
-        Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem
+        Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem,
+        Muestra.id != muestra_id
     ).first()
     if existe:
         db.close()
-        raise HTTPException(
-            status_code=422,
-            detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'."
-        )
-
-    ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
-    nuevo_numero = 1 if not ultimo else ultimo.id + 1
-    codigo_barra = f"UTN-2026-{str(nuevo_numero).zfill(5)}"
-
-    muestra = Muestra(
-        caja_id                   = caja_id,
-        numero_caja               = f"CAJA-{str(caja.id).zfill(3)}",
-        nivel                     = f"Piso {caja.piso}",
-        codigo_utn_especie        = codigo_utn_especie,
-        numero_replica            = numero_replica,
-        numero_tubo_en_caja       = numero_tubo_en_caja,
-        numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem,
-        medio_cultivo             = medio_cultivo,
-        ubicacion_refrigerador    = calcular_ubicacion(caja, numero_replica, numero_tubo_en_caja),
-        codigo_barra              = codigo_barra,
-        especie                   = especie,
-        seguimiento               = seguimiento,
-        identificacion_taxonomica = identificacion_taxonomica.strip(),
-        origen_muestra            = origen_muestra,
-        codigo_para_caja          = generar_codigo_para_caja(caja, especie, origen_muestra),
-    )
-    db.add(muestra)
+        raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+    caja = db.query(Caja).filter(Caja.id == muestra.caja_id).first()
+    muestra.codigo_utn_especie        = codigo_utn_especie
+    muestra.numero_replica            = numero_replica
+    muestra.numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem
+    muestra.medio_cultivo             = medio_cultivo
+    muestra.especie                   = especie
+    muestra.seguimiento               = seguimiento
+    muestra.identificacion_taxonomica = identificacion_taxonomica.strip()
+    muestra.origen_muestra            = origen_muestra
+    if caja:
+        muestra.codigo_para_caja       = generar_codigo_para_caja(caja, especie, origen_muestra)
+        muestra.ubicacion_refrigerador = calcular_ubicacion(caja, numero_replica, muestra.numero_tubo_en_caja)
     db.commit()
-    db.refresh(muestra)
-
-    try:
-        code128 = barcode.get("code128", muestra.codigo_barra, writer=ImageWriter())
-        code128.save(os.path.join(BARCODES_DIR, muestra.codigo_barra))
-    except Exception:
-        pass
-
     db.close()
-    return RedirectResponse(url=f"/?muestra_id={muestra.id}", status_code=303)
-
+    return {"status": "ok"}
 
 @app.get("/muestras/{muestra_id}/eliminar")
 def eliminar_muestra(muestra_id: int):

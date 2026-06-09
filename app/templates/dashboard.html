@@ -1240,6 +1240,17 @@
           width: 100%;
         }
       }
+
+      #modal-editar-muestra input[type="radio"] {
+        display: inline-block !important;
+        width: 16px !important;
+        height: 16px !important;
+        appearance: auto !important;
+        -webkit-appearance: auto !important;
+        accent-color: var(--blue);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
     </style>
   </head>
 
@@ -1479,6 +1490,54 @@
                   </td>
                   <td>
                     <div style="display: flex; gap: 5px; align-items: center">
+                      <button
+                        class="act-btn"
+                        style="
+                          background: #f0fdf4;
+                          border-color: #a7f3d0;
+                          color: #059669;
+                          font-size: 11px;
+                          font-weight: 700;
+                          width: auto;
+                          padding: 0 8px;
+                        "
+                        data-mid="{{ m.id }}"
+                        data-cod="{{ m.codigo_utn_especie }}"
+                        data-ccm="{{ m.numero_muestra_ccmbi_ogem }}"
+                        data-med="{{ m.medio_cultivo }}"
+                        data-rep="{{ m.numero_replica }}"
+                        data-esp="{{ m.especie }}"
+                        data-seg="{{ m.seguimiento }}"
+                        data-tax="{{ m.identificacion_taxonomica or '' }}"
+                        data-ori="{{ m.origen_muestra or '' }}"
+                        onclick="abrirEditarMuestra(this)"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        class="act-btn"
+                        style="
+                          background: #eff4ff;
+                          border-color: #bfcfff;
+                          color: #2563eb;
+                          font-size: 11px;
+                          font-weight: 700;
+                          width: auto;
+                          padding: 0 8px;
+                        "
+                        data-muestra-id="{{ m.id }}"
+                        data-muestra-cod="{{ m.codigo_barra }}"
+                        data-muestra-caja="{{ m.numero_caja }}"
+                        onclick="
+                          abrirModalMover(
+                            this.dataset.muestraId,
+                            this.dataset.muestraCod,
+                            this.dataset.muestraCaja,
+                          )
+                        "
+                      >
+                        Mover
+                      </button>
                       <button
                         class="act-btn print"
                         data-mid="{{ m.id }}"
@@ -1876,6 +1935,318 @@
             </button>
             <button class="modal-btn-delete" id="modal-btn-confirmar">
               <img src="/static/delete.png" alt="" /> Sí, eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL MOVER MUESTRA -->
+    <div class="modal-overlay" id="modal-mover">
+      <div class="modal-box" style="width: 500px">
+        <div
+          class="modal-top"
+          style="background: #f0fdf4; border-color: #a7f3d0"
+        >
+          <div class="modal-icon" style="background: #059669">
+            <span style="color: white; font-size: 18px">⇄</span>
+          </div>
+          <div>
+            <h3 style="color: #065f46">Mover muestra</h3>
+            <p style="color: #047857" id="modal-mover-subtitulo"></p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="fi-group" style="margin-bottom: 16px">
+            <label>Selecciona la caja destino</label>
+            <select
+              id="select-caja-destino"
+              style="
+                padding: 8px 12px;
+                border: 1.5px solid var(--border);
+                border-radius: 8px;
+                font-size: 13px;
+                font-family: var(--font);
+                width: 100%;
+                outline: none;
+              "
+              onchange="previsualizarMover()"
+            >
+              <option value="">— Seleccione una caja —</option>
+            </select>
+          </div>
+          <div id="modal-mover-preview" style="display: none">
+            <div
+              class="modal-data"
+              id="modal-mover-data"
+              style="margin-bottom: 12px"
+            ></div>
+            <div
+              class="modal-warning"
+              id="modal-mover-warning"
+              style="display: none"
+            ></div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn-cancel" onclick="cerrarModalMover()">
+              Cancelar
+            </button>
+            <button
+              class="modal-btn-delete"
+              id="btn-confirmar-mover"
+              style="background: #059669; display: none"
+              onclick="confirmarMover()"
+            >
+              Confirmar movimiento
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EDITAR MUESTRA -->
+    <div class="modal-overlay" id="modal-editar-muestra">
+      <div
+        class="modal-box"
+        style="width: 540px; max-height: 90vh; overflow-y: auto"
+      >
+        <div
+          class="modal-top"
+          style="background: #f0fdf4; border-color: #a7f3d0"
+        >
+          <div class="modal-icon" style="background: #059669">
+            <span style="color: white; font-size: 18px">✎</span>
+          </div>
+          <div>
+            <h3 style="color: #065f46">Editar muestra</h3>
+            <p style="color: #047857" id="modal-editar-subtitulo"></p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div
+            id="modal-editar-error"
+            style="
+              display: none;
+              background: #fef2f2;
+              border: 1px solid #fca5a5;
+              color: #dc2626;
+              border-radius: 8px;
+              padding: 10px 14px;
+              margin-bottom: 12px;
+              font-size: 13px;
+            "
+          ></div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="fi-group">
+              <label>Codigo UTN especie *</label>
+              <input
+                type="text"
+                id="edit-codigo_utn_especie"
+                maxlength="50"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>N° CCMBIOGEM *</label>
+              <input
+                type="text"
+                id="edit-ccmbiogem"
+                maxlength="50"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Medio de cultivo *</label>
+              <input
+                type="text"
+                id="edit-medio"
+                maxlength="50"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Numero replica *</label>
+              <input
+                type="number"
+                id="edit-replica"
+                min="1"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group" style="grid-column: 1/-1">
+              <label>Origen de la muestra *</label>
+              <input
+                type="text"
+                id="edit-origen"
+                maxlength="100"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Especie UTN</label>
+              <div style="display: flex; gap: 8px">
+                <label
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 400;
+                    cursor: pointer;
+                  "
+                  ><input
+                    type="radio"
+                    name="edit-especie"
+                    id="edit-esp-si"
+                    value="SI"
+                    style="
+                      display: inline-block;
+                      width: auto;
+                      accent-color: var(--blue);
+                    "
+                  />
+                  SI</label
+                >
+                <label
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 400;
+                    cursor: pointer;
+                  "
+                  ><input
+                    type="radio"
+                    name="edit-especie"
+                    id="edit-esp-no"
+                    value="NO"
+                    checked
+                    style="
+                      display: inline-block;
+                      width: auto;
+                      accent-color: var(--blue);
+                    "
+                  />
+                  NO</label
+                >
+              </div>
+            </div>
+            <div class="fi-group">
+              <label>Seguimiento</label>
+              <div style="display: flex; gap: 8px">
+                <label
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 400;
+                    cursor: pointer;
+                  "
+                  ><input
+                    type="radio"
+                    name="edit-seguimiento"
+                    id="edit-seg-si"
+                    value="SI"
+                    style="
+                      display: inline-block;
+                      width: auto;
+                      accent-color: var(--blue);
+                    "
+                  />
+                  SI</label
+                >
+                <label
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 400;
+                    cursor: pointer;
+                  "
+                  ><input
+                    type="radio"
+                    name="edit-seguimiento"
+                    id="edit-seg-no"
+                    value="NO"
+                    checked
+                    style="
+                      display: inline-block;
+                      width: auto;
+                      accent-color: var(--blue);
+                    "
+                  />
+                  NO</label
+                >
+              </div>
+            </div>
+            <div class="fi-group" style="grid-column: 1/-1">
+              <label>Identificacion taxonomica</label>
+              <input
+                type="text"
+                id="edit-taxonomica"
+                maxlength="100"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top: 16px">
+            <button class="modal-btn-cancel" onclick="cerrarEditarMuestra()">
+              Cancelar
+            </button>
+            <button
+              class="modal-btn-delete"
+              id="btn-confirmar-editar-muestra"
+              style="background: #059669"
+              onclick="confirmarEditarMuestra()"
+            >
+              Guardar cambios
             </button>
           </div>
         </div>
@@ -2530,6 +2901,201 @@
       document.addEventListener("DOMContentLoaded", () => {
         cargarEstadoBackup();
       });
+
+      // ── Mover muestra ────────────────────────────────────────────────────────────
+      let moverMuestraId = null;
+      let moverCajaDestinoId = null;
+
+      async function abrirModalMover(id, codigo, cajaActual) {
+        moverMuestraId = id;
+        moverCajaDestinoId = null;
+        document.getElementById("modal-mover-subtitulo").textContent =
+          codigo + " — " + cajaActual;
+        document.getElementById("modal-mover-preview").style.display = "none";
+        document.getElementById("btn-confirmar-mover").style.display = "none";
+        document.getElementById("modal-mover-warning").style.display = "none";
+        const res = await fetch("/cajas/disponibles");
+        const cajas = await res.json();
+        const select = document.getElementById("select-caja-destino");
+        select.innerHTML = '<option value="">— Seleccione una caja —</option>';
+        cajas.forEach((c) => {
+          if (c.llena) return;
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.label;
+          select.appendChild(opt);
+        });
+        document.getElementById("modal-mover").classList.add("show");
+      }
+
+      function cerrarModalMover() {
+        document.getElementById("modal-mover").classList.remove("show");
+        moverMuestraId = null;
+        moverCajaDestinoId = null;
+      }
+
+      document
+        .getElementById("modal-mover")
+        .addEventListener("click", function (e) {
+          if (e.target === this) cerrarModalMover();
+        });
+
+      async function previsualizarMover() {
+        const cajaId = document.getElementById("select-caja-destino").value;
+        if (!cajaId) {
+          document.getElementById("modal-mover-preview").style.display = "none";
+          document.getElementById("btn-confirmar-mover").style.display = "none";
+          return;
+        }
+        moverCajaDestinoId = cajaId;
+        const res = await fetch(
+          `/muestras/${moverMuestraId}/info-mover?caja_destino_id=${cajaId}`,
+        );
+        if (!res.ok) {
+          const j = await res.json();
+          alert(j.detail || "Error al obtener información");
+          return;
+        }
+        const data = await res.json();
+        document.getElementById("modal-mover-data").innerHTML = `
+    <div class="modal-data-row"><span class="lbl">Caja destino</span><span class="val">${data.caja_destino_nombre}</span></div>
+    <div class="modal-data-row"><span class="lbl">Tubo asignado</span><span class="val">${data.tubo_propuesto}</span></div>
+    <div class="modal-data-row"><span class="lbl">Nuevo codigo caja</span><span class="val" style="font-family:monospace;color:var(--blue)">${data.nuevo_codigo_para_caja}</span></div>
+    <div class="modal-data-row"><span class="lbl">Nueva ubicacion</span><span class="val" style="font-size:12px">${data.nueva_ubicacion}</span></div>
+    <div class="modal-data-row"><span class="lbl">Espacios libres</span><span class="val">${data.libres}</span></div>`;
+        const warning = document.getElementById("modal-mover-warning");
+        if (data.tubo_cambiado) {
+          warning.innerHTML = `<b>Aviso:</b> El tubo <b>${data.tubo_original}</b> ya está ocupado en la caja destino. Se asignará el tubo <b>${data.tubo_propuesto}</b>.`;
+          warning.style.display = "block";
+        } else {
+          warning.style.display = "none";
+        }
+        document.getElementById("modal-mover-preview").style.display = "block";
+        document.getElementById("btn-confirmar-mover").style.display =
+          "inline-flex";
+      }
+
+      async function confirmarMover() {
+        if (!moverMuestraId || !moverCajaDestinoId) return;
+        const btn = document.getElementById("btn-confirmar-mover");
+        btn.disabled = true;
+        btn.textContent = "Moviendo...";
+        const formData = new FormData();
+        formData.append("caja_destino_id", moverCajaDestinoId);
+        const res = await fetch(`/muestras/${moverMuestraId}/mover`, {
+          method: "POST",
+          body: formData,
+        });
+        if (res.ok) {
+          cerrarModalMover();
+          location.reload();
+        } else {
+          let msg = "Error al mover.";
+          try {
+            const j = await res.json();
+            msg = j.detail || msg;
+          } catch {}
+          alert(msg);
+        }
+        btn.disabled = false;
+        btn.textContent = "Confirmar movimiento";
+      }
+
+      // ── Editar muestra ───────────────────────────────────────────────────────────
+      let editarMuestraId = null;
+
+      function abrirEditarMuestra(btn) {
+        editarMuestraId = btn.dataset.mid;
+        document.getElementById("modal-editar-subtitulo").textContent =
+          `ID #${btn.dataset.mid}`;
+        document.getElementById("edit-codigo_utn_especie").value =
+          btn.dataset.cod || "";
+        document.getElementById("edit-ccmbiogem").value = btn.dataset.ccm || "";
+        document.getElementById("edit-medio").value = btn.dataset.med || "";
+        document.getElementById("edit-replica").value = btn.dataset.rep || "1";
+        document.getElementById("edit-origen").value = btn.dataset.ori || "";
+        document.getElementById("edit-taxonomica").value =
+          btn.dataset.tax || "";
+        document.getElementById("edit-esp-si").checked =
+          btn.dataset.esp === "SI";
+        document.getElementById("edit-esp-no").checked =
+          btn.dataset.esp !== "SI";
+        document.getElementById("edit-seg-si").checked =
+          btn.dataset.seg === "SI";
+        document.getElementById("edit-seg-no").checked =
+          btn.dataset.seg !== "SI";
+        document.getElementById("modal-editar-error").style.display = "none";
+        document.getElementById("modal-editar-muestra").classList.add("show");
+      }
+
+      function cerrarEditarMuestra() {
+        document
+          .getElementById("modal-editar-muestra")
+          .classList.remove("show");
+        editarMuestraId = null;
+      }
+
+      document
+        .getElementById("modal-editar-muestra")
+        .addEventListener("click", function (e) {
+          if (e.target === this) cerrarEditarMuestra();
+        });
+
+      async function confirmarEditarMuestra() {
+        const btn = document.getElementById("btn-confirmar-editar-muestra");
+        const err = document.getElementById("modal-editar-error");
+        err.style.display = "none";
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        const formData = new FormData();
+        formData.append(
+          "codigo_utn_especie",
+          document.getElementById("edit-codigo_utn_especie").value,
+        );
+        formData.append(
+          "numero_replica",
+          document.getElementById("edit-replica").value,
+        );
+        formData.append(
+          "numero_muestra_ccmbi_ogem",
+          document.getElementById("edit-ccmbiogem").value,
+        );
+        formData.append(
+          "medio_cultivo",
+          document.getElementById("edit-medio").value,
+        );
+        formData.append(
+          "especie",
+          document.querySelector('input[name="edit-especie"]:checked').value,
+        );
+        formData.append(
+          "seguimiento",
+          document.querySelector('input[name="edit-seguimiento"]:checked')
+            .value,
+        );
+        formData.append(
+          "identificacion_taxonomica",
+          document.getElementById("edit-taxonomica").value,
+        );
+        formData.append(
+          "origen_muestra",
+          document.getElementById("edit-origen").value,
+        );
+        const res = await fetch(`/muestras/${editarMuestraId}/editar`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          cerrarEditarMuestra();
+          location.reload();
+        } else {
+          err.textContent = data.detail || "Error al guardar";
+          err.style.display = "block";
+        }
+        btn.disabled = false;
+        btn.textContent = "Guardar cambios";
+      }
     </script>
   </body>
 </html>
