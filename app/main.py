@@ -412,17 +412,53 @@ def eliminar_caja_forzado(caja_id: int):
     return {"status": "ok"}
 
 @app.post("/cajas/{caja_id}/editar-nombre")
-def editar_nombre_caja(caja_id: int, nombre: str = Form(...)):
+def editar_nombre_caja(
+    caja_id:    int,
+    nombre:     str = Form(...),
+    congelador: int = Form(...),
+    piso:       int = Form(...),
+    posicion:   int = Form(...),
+    fecha:      str = Form(...),
+):
     nombre = validar_texto(nombre, "Nombre de caja", max_len=100)
+    if congelador not in [1, 2]:
+        raise HTTPException(status_code=422, detail="Congelador debe ser 1 (vertical) o 2 (horizontal).")
+    if piso < 1:
+        raise HTTPException(status_code=422, detail="El piso debe ser mayor a 0.")
+    if posicion < 1:
+        raise HTTPException(status_code=422, detail="La posición debe ser mayor a 0.")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
+        raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
     db: Session = SessionLocal()
     caja = db.query(Caja).filter(Caja.id == caja_id).first()
     if not caja:
         db.close()
         raise HTTPException(status_code=404, detail="Caja no encontrada.")
-    caja.nombre = nombre
+    # Verificar que no exista otra caja en la misma ubicación
+    existe = db.query(Caja).filter(
+        Caja.congelador == congelador,
+        Caja.piso       == piso,
+        Caja.posicion   == posicion,
+        Caja.id         != caja_id,
+    ).first()
+    if existe:
+        db.close()
+        tipo = "vertical" if congelador == 1 else "horizontal"
+        raise HTTPException(status_code=422, detail=f"Ya existe otra caja en el congelador {tipo}, piso {piso}, posición {posicion}.")
+    caja.nombre     = nombre
+    caja.congelador = congelador
+    caja.piso       = piso
+    caja.posicion   = posicion
+    caja.fecha      = fecha
+    # Recalcular ubicacion_refrigerador de todas las muestras de esta caja
+    muestras = db.query(Muestra).filter(Muestra.caja_id == caja_id).all()
+    for m in muestras:
+        m.ubicacion_refrigerador = calcular_ubicacion(caja, m.numero_replica, m.numero_tubo_en_caja)
+        m.codigo_para_caja       = generar_codigo_para_caja(caja, m.especie, m.origen_muestra)
+        m.numero_caja            = nombre
     db.commit()
     db.close()
-    return {"status": "ok", "nombre": nombre}
+    return {"status": "ok"}
 
 # ── MUESTRAS ───────────────────────────────────────────────────────────────────
 
@@ -498,7 +534,7 @@ def crear_muestra(
         cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
         m = Muestra(
             caja_id=caja_id,
-            numero_caja=f"CAJA-{str(caja.id).zfill(3)}",
+            numero_caja=caja.nombre,
             nivel=f"Piso {caja.piso}",
             codigo_utn_especie=codigo_utn_especie,
             numero_replica=replica_num,
@@ -585,7 +621,7 @@ def mover_muestra(muestra_id: int, caja_destino_id: int = Form(...)):
         tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_destino_id).all()}
         tubo_propuesto = next((t for t in range(1, CAPACIDAD_CAJA + 1) if t not in tubos_ocupados), None)
     muestra.caja_id               = caja_destino.id
-    muestra.numero_caja           = f"CAJA-{str(caja_destino.id).zfill(3)}"
+    muestra.numero_caja = caja_destino.nombre
     muestra.nivel                 = f"Piso {caja_destino.piso}"
     muestra.numero_tubo_en_caja   = tubo_propuesto
     muestra.ubicacion_refrigerador = calcular_ubicacion(caja_destino, muestra.numero_replica, tubo_propuesto)

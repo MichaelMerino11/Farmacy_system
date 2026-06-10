@@ -1797,10 +1797,18 @@
                         "
                         data-caja-id="{{ c.id }}"
                         data-nombre="{{ c.nombre }}"
+                        data-congelador="{{ c.congelador }}"
+                        data-piso="{{ c.piso }}"
+                        data-posicion="{{ c.posicion }}"
+                        data-fecha="{{ c.fecha }}"
                         onclick="
                           abrirEditarCaja(
                             this.dataset.cajaId,
                             this.dataset.nombre,
+                            this.dataset.congelador,
+                            this.dataset.piso,
+                            this.dataset.posicion,
+                            this.dataset.fecha,
                           )
                         "
                       >
@@ -2292,7 +2300,7 @@
     </div>
 
     <div class="modal-overlay" id="modal-editar-caja">
-      <div class="modal-box">
+      <div class="modal-box" style="width: 520px">
         <div
           class="modal-top"
           style="background: #eff4ff; border-color: #bfcfff"
@@ -2303,29 +2311,113 @@
             >
           </div>
           <div>
-            <h3 style="color: #1e3a8a">Editar nombre de caja</h3>
-            <p style="color: #3b5bdb">Cambia el nombre sin perder los datos</p>
+            <h3 style="color: #1e3a8a">Editar caja</h3>
+            <p style="color: #3b5bdb">Modifica los datos de la caja</p>
           </div>
         </div>
         <div class="modal-body">
-          <div class="fi-group" style="margin-bottom: 16px">
-            <label>Nuevo nombre</label>
-            <input
-              type="text"
-              id="input-nombre-caja"
-              maxlength="100"
-              style="
-                padding: 8px 12px;
-                border: 1.5px solid var(--border);
-                border-radius: 8px;
-                font-size: 14px;
-                font-family: var(--font);
-                width: 100%;
-                outline: none;
-              "
-            />
+          <div
+            id="modal-editar-caja-error"
+            style="
+              display: none;
+              background: #fef2f2;
+              border: 1px solid #fca5a5;
+              color: #dc2626;
+              border-radius: 8px;
+              padding: 10px 14px;
+              margin-bottom: 12px;
+              font-size: 13px;
+            "
+          ></div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="fi-group" style="grid-column: 1/-1">
+              <label>Nombre *</label>
+              <input
+                type="text"
+                id="input-nombre-caja"
+                maxlength="100"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Congelador *</label>
+              <select
+                id="input-congelador-caja"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                  background: var(--white);
+                "
+              >
+                <option value="1">Vertical</option>
+                <option value="2">Horizontal</option>
+              </select>
+            </div>
+            <div class="fi-group">
+              <label>Fecha *</label>
+              <input
+                type="date"
+                id="input-fecha-caja"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Piso *</label>
+              <input
+                type="number"
+                id="input-piso-caja"
+                min="1"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Posición *</label>
+              <input
+                type="number"
+                id="input-posicion-caja"
+                min="1"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
           </div>
-          <div class="modal-actions">
+          <div class="modal-actions" style="margin-top: 16px">
             <button class="modal-btn-cancel" onclick="cerrarEditarCaja()">
               Cancelar
             </button>
@@ -2679,9 +2771,15 @@
         document.getElementById("modal-eliminar").classList.add("show");
       }
 
-      function abrirEditarCaja(id, nombreActual) {
+      function abrirEditarCaja(id, nombre, congelador, piso, posicion, fecha) {
         cajaEditandoId = id;
-        document.getElementById("input-nombre-caja").value = nombreActual;
+        document.getElementById("input-nombre-caja").value = nombre;
+        document.getElementById("input-congelador-caja").value = congelador;
+        document.getElementById("input-piso-caja").value = piso;
+        document.getElementById("input-posicion-caja").value = posicion;
+        document.getElementById("input-fecha-caja").value = fecha;
+        document.getElementById("modal-editar-caja-error").style.display =
+          "none";
         document.getElementById("modal-editar-caja").classList.add("show");
       }
 
@@ -2697,11 +2795,20 @@
         });
 
       async function confirmarEditarCaja() {
+        const err = document.getElementById("modal-editar-caja-error");
+        err.style.display = "none";
         const nombre = document
           .getElementById("input-nombre-caja")
           .value.trim();
-        if (!nombre) {
-          alert("El nombre no puede estar vacío.");
+        const congelador = document.getElementById(
+          "input-congelador-caja",
+        ).value;
+        const piso = document.getElementById("input-piso-caja").value;
+        const posicion = document.getElementById("input-posicion-caja").value;
+        const fecha = document.getElementById("input-fecha-caja").value;
+        if (!nombre || !congelador || !piso || !posicion || !fecha) {
+          err.textContent = "Todos los campos son obligatorios.";
+          err.style.display = "block";
           return;
         }
         const btn = document.getElementById("btn-confirmar-editar");
@@ -2709,6 +2816,10 @@
         btn.textContent = "Guardando...";
         const formData = new FormData();
         formData.append("nombre", nombre);
+        formData.append("congelador", congelador);
+        formData.append("piso", piso);
+        formData.append("posicion", posicion);
+        formData.append("fecha", fecha);
         const res = await fetch(`/cajas/${cajaEditandoId}/editar-nombre`, {
           method: "POST",
           body: formData,
@@ -2718,7 +2829,8 @@
           cerrarEditarCaja();
           location.reload();
         } else {
-          alert(data.detail || "Error al guardar");
+          err.textContent = data.detail || "Error al guardar";
+          err.style.display = "block";
         }
         btn.disabled = false;
         btn.textContent = "Guardar";
