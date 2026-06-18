@@ -520,10 +520,10 @@ def crear_muestra(
         tubos_necesarios.append(tubo_actual)
         tubos_ocupados.add(tubo_actual)
         tubo_actual += 1
-    existe = db.query(Muestra).filter(Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem).first()
+    """ existe = db.query(Muestra).filter(Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem).first()
     if existe:
         db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.") """
     ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     while db.query(Muestra).filter(Muestra.codigo_barra == f"UTN-2026-{str(nuevo_numero).zfill(5)}").first():
@@ -657,13 +657,13 @@ def editar_muestra(
     if not muestra:
         db.close()
         raise HTTPException(status_code=404, detail="Muestra no encontrada.")
-    existe = db.query(Muestra).filter(
+    """ existe = db.query(Muestra).filter(
         Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem,
         Muestra.id != muestra_id
     ).first()
     if existe:
         db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+        raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.") """
     caja = db.query(Caja).filter(Caja.id == muestra.caja_id).first()
     muestra.codigo_utn_especie        = codigo_utn_especie
     muestra.numero_replica            = numero_replica
