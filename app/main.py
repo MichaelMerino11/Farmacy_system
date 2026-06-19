@@ -467,14 +467,13 @@ def crear_muestra(
     caja_id:                   int = Form(...),
     codigo_utn_especie:        str = Form(...),
     numero_replica:            int = Form(...),
-    numero_tubo_en_caja:       int = Form(...),
+    numero_tubo_en_caja:       str = Form(...),
     numero_muestra_ccmbi_ogem: str = Form(...),
     medio_cultivo:             str = Form(...),
     especie:                   str = Form("NO"),
     seguimiento:               str = Form("NO"),
     identificacion_taxonomica: str = Form(""),
     origen_muestra:            str = Form(...),
-    cantidad_repeticiones:     int = Form(1),
 ):
     codigo_utn_especie        = validar_texto(codigo_utn_especie, "Código UTN especie", max_len=50)
     numero_muestra_ccmbi_ogem = validar_texto(numero_muestra_ccmbi_ogem, "N° muestra CCMBIOGEM", max_len=50)
@@ -487,49 +486,54 @@ def crear_muestra(
         seguimiento = "NO"
     if numero_replica < 1:
         raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
-    if cantidad_repeticiones < 1 or cantidad_repeticiones > CAPACIDAD_CAJA:
-        raise HTTPException(status_code=422, detail=f"La cantidad de repeticiones debe estar entre 1 y {CAPACIDAD_CAJA}.")
-    if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
-        raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
+    def parsear_tubos(valor: str) -> list[int]:
+        tubos = []
+        for parte in valor.split(","):
+            parte = parte.strip()
+            if "-" in parte:
+                inicio, fin = parte.split("-")
+                tubos.extend(range(int(inicio), int(fin) + 1))
+            else:
+                tubos.append(int(parte))
+        return sorted(set(tubos))
+
+    try:
+        tubos_solicitados = parsear_tubos(numero_tubo_en_caja)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Formato de tubo inválido. Usa: 5 o 1-12 o 1-5,10-15")
+
+    if not tubos_solicitados:
+        raise HTTPException(status_code=422, detail="Debes indicar al menos un tubo.")
+
+    for t in tubos_solicitados:
+        if not (1 <= t <= CAPACIDAD_CAJA):
+            raise HTTPException(status_code=422, detail=f"El tubo {t} está fuera del rango permitido (1-{CAPACIDAD_CAJA}).")
 
     db: Session = SessionLocal()
-
     caja = db.query(Caja).filter(Caja.id == caja_id).first()
     if not caja:
         db.close()
         raise HTTPException(status_code=422, detail="La caja seleccionada no existe.")
 
     ocupadas = contar_muestras_en_caja(db, caja_id)
-    if ocupadas + cantidad_repeticiones > CAPACIDAD_CAJA:
+    if ocupadas + len(tubos_solicitados) > CAPACIDAD_CAJA:
         libres = CAPACIDAD_CAJA - ocupadas
         db.close()
-        raise HTTPException(status_code=422, detail=f"No hay espacio suficiente. La caja tiene {libres} espacio(s) libre(s) y necesitas {cantidad_repeticiones}.")
+        raise HTTPException(status_code=422, detail=f"No hay espacio suficiente. La caja tiene {libres} espacio(s) libre(s) y necesitas {len(tubos_solicitados)}.")
 
     tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_id).all()}
-    if numero_tubo_en_caja in tubos_ocupados:
+    tubos_ya_ocupados = [t for t in tubos_solicitados if t in tubos_ocupados]
+    if tubos_ya_ocupados:
         db.close()
-        raise HTTPException(status_code=422, detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'.")
-    tubos_necesarios = []
-    tubo_actual = numero_tubo_en_caja
-    for _ in range(cantidad_repeticiones):
-        while tubo_actual in tubos_ocupados and tubo_actual <= CAPACIDAD_CAJA:
-            tubo_actual += 1
-        if tubo_actual > CAPACIDAD_CAJA:
-            db.close()
-            raise HTTPException(status_code=422, detail="No hay suficientes tubos disponibles desde el tubo indicado.")
-        tubos_necesarios.append(tubo_actual)
-        tubos_ocupados.add(tubo_actual)
-        tubo_actual += 1
-    """ existe = db.query(Muestra).filter(Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem).first()
-    if existe:
-        db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.") """
+        raise HTTPException(status_code=422, detail=f"Los tubos {tubos_ya_ocupados} ya están ocupados en la caja '{caja.nombre}'.")
+
     ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     while db.query(Muestra).filter(Muestra.codigo_barra == f"UTN-2026-{str(nuevo_numero).zfill(5)}").first():
         nuevo_numero += 1
+
     primera_muestra = None
-    for i, tubo in enumerate(tubos_necesarios):
+    for i, tubo in enumerate(tubos_solicitados):
         replica_num = numero_replica + i
         cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
         m = Muestra(
@@ -552,15 +556,18 @@ def crear_muestra(
         db.add(m)
         if i == 0:
             primera_muestra = m
+
     db.commit()
     db.refresh(primera_muestra)
-    for i in range(cantidad_repeticiones):
+
+    for i in range(len(tubos_solicitados)):
         cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
         try:
             code128 = barcode.get("code128", cb, writer=ImageWriter())
             code128.save(os.path.join(BARCODES_DIR, cb))
         except Exception:
             pass
+
     db.close()
     return RedirectResponse(url=f"/?muestra_id={primera_muestra.id}", status_code=303)
 
@@ -635,6 +642,7 @@ def editar_muestra(
     muestra_id:                int,
     codigo_utn_especie:        str = Form(...),
     numero_replica:            int = Form(...),
+    numero_tubo_en_caja:       int = Form(...),
     numero_muestra_ccmbi_ogem: str = Form(...),
     medio_cultivo:             str = Form(...),
     especie:                   str = Form("NO"),
@@ -665,6 +673,19 @@ def editar_muestra(
         db.close()
         raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.") """
     caja = db.query(Caja).filter(Caja.id == muestra.caja_id).first()
+    if numero_tubo_en_caja != muestra.numero_tubo_en_caja:
+        if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
+            db.close()
+            raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
+        tubo_ocupado = db.query(Muestra).filter(
+            Muestra.caja_id == muestra.caja_id,
+            Muestra.numero_tubo_en_caja == numero_tubo_en_caja,
+            Muestra.id != muestra_id,
+        ).first()
+        if tubo_ocupado:
+            db.close()
+            raise HTTPException(status_code=422, detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en esta caja.")
+        muestra.numero_tubo_en_caja = numero_tubo_en_caja
     muestra.codigo_utn_especie        = codigo_utn_especie
     muestra.numero_replica            = numero_replica
     muestra.numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem

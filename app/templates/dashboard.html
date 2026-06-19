@@ -1510,6 +1510,9 @@
                         data-seg="{{ m.seguimiento }}"
                         data-tax="{{ m.identificacion_taxonomica or '' }}"
                         data-ori="{{ m.origen_muestra or '' }}"
+                        data-tubo="{{ m.numero_tubo_en_caja }}"
+                        data-ori="{{ m.origen_muestra or '' }}"
+                        onclick="abrirEditarMuestra(this)"
                         onclick="abrirEditarMuestra(this)"
                       >
                         Editar
@@ -2102,6 +2105,24 @@
                 type="number"
                 id="edit-replica"
                 min="1"
+                style="
+                  padding: 8px 12px;
+                  border: 1.5px solid var(--border);
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-family: var(--font);
+                  width: 100%;
+                  outline: none;
+                "
+              />
+            </div>
+            <div class="fi-group">
+              <label>Tubo en caja *</label>
+              <input
+                type="number"
+                id="edit-tubo"
+                min="1"
+                max="81"
                 style="
                   padding: 8px 12px;
                   border: 1.5px solid var(--border);
@@ -3125,6 +3146,7 @@
         document.getElementById("edit-ccmbiogem").value = btn.dataset.ccm || "";
         document.getElementById("edit-medio").value = btn.dataset.med || "";
         document.getElementById("edit-replica").value = btn.dataset.rep || "1";
+        document.getElementById("edit-tubo").value = btn.dataset.tubo || "1";
         document.getElementById("edit-origen").value = btn.dataset.ori || "";
         document.getElementById("edit-taxonomica").value =
           btn.dataset.tax || "";
@@ -3167,6 +3189,10 @@
         formData.append(
           "numero_replica",
           document.getElementById("edit-replica").value,
+        );
+        formData.append(
+          "numero_tubo_en_caja",
+          document.getElementById("edit-tubo").value,
         );
         formData.append(
           "numero_muestra_ccmbi_ogem",

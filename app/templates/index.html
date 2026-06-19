@@ -928,24 +928,6 @@
                 />
                 <div class="error-msg" id="err-numero_replica"></div>
               </div>
-              <div class="form-group">
-                <label for="cantidad_repeticiones"
-                  >Cantidad de repeticiones</label
-                >
-                <input
-                  id="cantidad_repeticiones"
-                  name="cantidad_repeticiones"
-                  type="number"
-                  min="1"
-                  max="81"
-                  value="1"
-                />
-                <div class="hint">
-                  Si la muestra tiene repeticiones, indica cuántas. Se crearán
-                  registros consecutivos en la caja.
-                </div>
-                <div class="error-msg" id="err-cantidad_repeticiones"></div>
-              </div>
               <div class="form-group full">
                 <label for="numero_tubo_en_caja"
                   >Tubo en caja *
@@ -957,15 +939,13 @@
                 <input
                   id="numero_tubo_en_caja"
                   name="numero_tubo_en_caja"
-                  type="number"
-                  min="1"
-                  max="81"
-                  placeholder="1 – 81"
+                  type="text"
+                  placeholder="Ej: 5 o 1-12 o 1-5,10-15"
                   required
                 />
                 <div class="hint">
-                  Máximo 81 tubos por caja (9×9). El sistema valida que el tubo
-                  no esté ocupado.
+                  Valor simple (5), rango (1-12) o múltiples rangos (1-5,10-15).
+                  Máximo 81 tubos por caja.
                 </div>
                 <div class="error-msg" id="err-numero_tubo_en_caja"></div>
               </div>
@@ -1281,18 +1261,11 @@
           showErr("numero_replica", "Debe ser mayor a 0.");
           ok = false;
         }
-        const rep = parseInt(
-          document.getElementById("cantidad_repeticiones").value,
-        );
-        if (!rep || rep < 1 || rep > 81) {
-          showErr("cantidad_repeticiones", "Debe estar entre 1 y 81.");
-          ok = false;
-        }
-        const t = parseInt(
-          document.getElementById("numero_tubo_en_caja").value,
-        );
-        if (!t || t < 1 || t > 81) {
-          showErr("numero_tubo_en_caja", "Debe estar entre 1 y 81.");
+        const tuboVal = document
+          .getElementById("numero_tubo_en_caja")
+          .value.trim();
+        if (!tuboVal) {
+          showErr("numero_tubo_en_caja", "Indica al menos un tubo.");
           ok = false;
         }
         return ok;
