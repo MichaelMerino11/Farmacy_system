@@ -1788,6 +1788,14 @@
                   <td>
                     <div style="display: flex; gap: 5px; align-items: center">
                       <button
+                        class="act-btn print"
+                        data-caja-id="{{ c.id }}"
+                        title="Imprimir etiqueta de caja"
+                        onclick="imprimirEtiquetaCaja(this.dataset.cajaId)"
+                      >
+                        <img src="/static/print.png" alt="Imprimir" />
+                      </button>
+                      <button
                         class="act-btn"
                         style="
                           background: #eff4ff;
@@ -3233,6 +3241,13 @@
         }
         btn.disabled = false;
         btn.textContent = "Guardar cambios";
+      }
+
+      async function imprimirEtiquetaCaja(id) {
+        const res = await fetch(`/cajas/${id}/print-raw`);
+        const data = await res.json();
+        if (data.status !== "ok")
+          alert("Error al imprimir: " + (data.error || "desconocido"));
       }
     </script>
   </body>

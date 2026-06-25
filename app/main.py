@@ -1097,6 +1097,40 @@ def generar_pdf_etiqueta(muestra_id: int):
     return Response(content=pdf, media_type="application/pdf")
 
 
+@app.get("/cajas/{caja_id}/print-raw")
+def imprimir_etiqueta_caja(caja_id: int):
+    db   = SessionLocal()
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    db.close()
+    if not caja:
+        return {"error": "No existe"}
+    tipo           = "Vertical" if caja.congelador == 1 else "Horizontal"
+    codigo_barcode = str(caja.id).zfill(5)
+    linea1         = caja.nombre[:20].encode()
+    linea2         = f"{tipo} P{caja.piso} Pos{caja.posicion}".encode()
+    data  = b'\x1b\x40'
+    data += b'\x1b\x61\x02'
+    data += b'\x1d\x68\x28'
+    data += b'\x1d\x77\x02'
+    data += b'\x1d\x48\x00'
+    data += b'\x1d\x6b\x49'
+    data += bytes([len(codigo_barcode.encode())])
+    data += codigo_barcode.encode()
+    data += b'\x1b\x4a\x04'
+    data += b'\x1b\x4d\x01'
+    data += b'\x1d\x21\x00'
+    data += linea1 + b'\n'
+    data += linea2 + b'\n'
+    salto_dots = 50
+    data += b'\x1b\x4a' + bytes([salto_dots])
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
+    return {"status": "ok"}
+
 # ── CALIBRACIÓN ────────────────────────────────────────────────────────────────
 
 @app.get("/debug/printer")
