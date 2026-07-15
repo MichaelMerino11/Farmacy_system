@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Etiqueta personalizada — UTN · Laboratorio</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --white: #fff;
+        --surface: #eef1f8;
+        --border: #dde3f0;
+        --blue: #2563eb;
+        --blue-light: #eff4ff;
+        --green: #059669;
+        --green-light: #ecfdf5;
+        --red: #dc2626;
+        --red-light: #fef2f2;
+        --text: #1e293b;
+        --text-mid: #475569;
+        --text-dim: #94a3b8;
+        --font: "Plus Jakarta Sans", sans-serif;
+        --radius: 12px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+        --t: 0.2s ease;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .topbar {
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+      }
+      .brand-logo {
+        height: 38px;
+        object-fit: contain;
+      }
+      .topbar-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .nav-pill {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--t);
+        color: var(--text-mid);
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: var(--font);
+        background: transparent;
+      }
+      .nav-pill:hover {
+        background: var(--surface);
+        color: var(--text);
+      }
+      .nav-pill.primary {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+      }
+      .nav-pill.primary:hover {
+        background: #1d4ed8;
+      }
+
+      .page {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+      }
+      .page-header {
+        margin-bottom: 24px;
+      }
+      .page-header h2 {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .page-header p {
+        font-size: 14px;
+        color: var(--text-mid);
+        margin-top: 4px;
+      }
+
+      .form-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .form-card-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .form-card-header h3 {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .form-card-header p {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
+      .form-card-body {
+        padding: 20px 24px;
+      }
+
+      .form-inline {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .fi-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .fi-group label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-mid);
+      }
+      .fi-group input {
+        padding: 8px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-family: var(--font);
+        color: var(--text);
+        background: var(--white);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .fi-group input:focus {
+        border-color: var(--blue);
+      }
+
+      .btn-submit-inline {
+        padding: 10px 28px;
+        background: var(--blue);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-family: var(--font);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: var(--t);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+      }
+      .btn-submit-inline:hover {
+        background: #1d4ed8;
+      }
+      .btn-submit-inline:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .toast {
+        display: none;
+        margin-top: 14px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .toast.ok {
+        display: block;
+        background: var(--green-light);
+        color: var(--green);
+        border: 1px solid #a7f3d0;
+      }
+      .toast.err {
+        display: block;
+        background: var(--red-light);
+        color: var(--red);
+        border: 1px solid #fca5a5;
+      }
+
+      .aviso {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 10px;
+        line-height: 1.5;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="topbar">
+      <a href="/" class="brand"
+        ><img
+          src="/media/utn_logo.png"
+          alt="UTN Laboratorio"
+          class="brand-logo"
+      /></a>
+      <div class="topbar-nav">
+        <a href="/dashboard" class="nav-pill">Dashboard</a>
+        <a href="/" class="nav-pill">Formulario</a>
+        <a href="/etiquetas/personalizada" class="nav-pill primary"
+          >Etiqueta personalizada</a
+        >
+      </div>
+    </nav>
+
+    <div class="page">
+      <div class="page-header">
+        <h2>Etiqueta personalizada</h2>
+        <p>
+          Completa los campos y envía a imprimir directamente en la impresora
+          térmica
+        </p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-header">
+          <h3>Datos de la etiqueta</h3>
+          <p>Formato 2.5" × 3.2" — impresión rotada en la impresora de 58mm</p>
+        </div>
+        <div class="form-card-body">
+          <form id="form-etiqueta">
+            <div class="form-inline">
+              <div class="fi-group">
+                <label>Tratamiento *</label>
+                <input
+                  type="text"
+                  name="tratamiento"
+                  maxlength="30"
+                  placeholder="Ej: Control, Fungicida A"
+                  required
+                />
+              </div>
+              <div class="fi-group">
+                <label>Tº *</label>
+                <input
+                  type="text"
+                  name="temperatura"
+                  maxlength="15"
+                  placeholder="Ej: 25°C"
+                  required
+                />
+              </div>
+              <div class="fi-group">
+                <label>Peso *</label>
+                <input
+                  type="text"
+                  name="peso"
+                  maxlength="15"
+                  placeholder="Ej: 2.5g"
+                  required
+                />
+              </div>
+              <div class="fi-group">
+                <label>N° *</label>
+                <input
+                  type="text"
+                  name="numero"
+                  maxlength="15"
+                  placeholder="Ej: 001"
+                  required
+                />
+              </div>
+              <div class="fi-group">
+                <label>Fecha *</label>
+                <input type="date" name="fecha" required />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit-inline" id="btn-imprimir">
+              Imprimir etiqueta
+            </button>
+
+            <div class="toast" id="toast"></div>
+            <div class="aviso">
+              El campo <b>BIOGEM</b> se imprime automáticamente en la etiqueta y
+              no requiere captura.
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="footer">
+        UTN · Laboratorio BIOGEM — Sistema de Trazabilidad
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("form-etiqueta")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const btn = document.getElementById("btn-imprimir");
+          const toast = document.getElementById("toast");
+          toast.className = "toast";
+          btn.disabled = true;
+          btn.textContent = "Imprimiendo...";
+
+          const formData = new FormData(this);
+
+          try {
+            const res = await fetch("/etiquetas/personalizada/print-raw", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json();
+            if (data.status === "ok") {
+              toast.textContent = "✓ Etiqueta enviada a la impresora";
+              toast.className = "toast ok";
+              this.reset();
+            } else {
+              toast.textContent = "✕ " + (data.error || "Error al imprimir");
+              toast.className = "toast err";
+            }
+          } catch (err) {
+            toast.textContent = "✕ Error de conexión con el servidor";
+            toast.className = "toast err";
+          }
+
+          btn.disabled = false;
+          btn.textContent = "Imprimir etiqueta";
+        });
+    </script>
+  </body>
+</html>

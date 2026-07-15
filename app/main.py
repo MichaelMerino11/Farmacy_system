@@ -3,6 +3,7 @@ import os
 import platform
 import re
 from datetime import datetime, timedelta
+from PIL import Image, ImageDraw, ImageFont
 
 from fastapi import FastAPI, Request, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -54,6 +55,15 @@ BARCODES_DIR  = os.path.join(EXE_DIR, "app", "static", "barcodes")  # writable j
 os.makedirs(STATIC_DIR,   exist_ok=True)
 os.makedirs(BARCODES_DIR, exist_ok=True)
 os.makedirs(MEDIA_DIR,    exist_ok=True)
+
+# ── ETIQUETA PERSONALIZADA (tabla 2x3, impresión rotada) ──────────────────────
+ETIQUETA_ANCHO_IN = 2.5   # ancho de impresión (dirección del cabezal)
+ETIQUETA_ALTO_IN   = 3.2  # largo de papel (dirección de avance)
+ETIQUETA_DPI        = 203  # estándar en impresoras térmicas de 58mm — ajustar si el resultado sale mal escalado
+
+FONT_REGULAR_PATH = os.path.join(STATIC_DIR, "fonts", "PlusJakartaSans-Regular.ttf")
+FONT_BOLD_PATH    = os.path.join(STATIC_DIR, "fonts", "bold_pw.ttf")
+
 
 
 # ── APP ────────────────────────────────────────────────────────────────────────
@@ -1165,3 +1175,119 @@ def calibrar(salto: int):
     except Exception as e:
         return {"error": str(e)}
     return {"status": f"Impreso con salto={salto}"}
+
+def _cargar_fuente(path: str, size: int):
+    try:
+        return ImageFont.truetype(path, size)
+    except Exception:
+        return ImageFont.load_default()
+
+def _generar_bitmap_etiqueta_personalizada(
+    tratamiento: str, temperatura: str, peso: str, numero: str, fecha: str
+) -> Image.Image:
+    ancho_px = int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+    alto_px  = int(ETIQUETA_ALTO_IN * ETIQUETA_DPI)
+
+    img  = Image.new("RGB", (ancho_px, alto_px), "white")
+    draw = ImageDraw.Draw(img)
+
+    label_font = _cargar_fuente(FONT_BOLD_PATH, 22)
+    value_font = _cargar_fuente(FONT_REGULAR_PATH, 26)
+
+    grosor_linea = 4
+    mitad_x = ancho_px // 2
+    tercio_y = alto_px // 3
+
+    # Borde exterior
+    draw.rectangle([0, 0, ancho_px - 1, alto_px - 1], outline="black", width=grosor_linea)
+    # Línea vertical central
+    draw.line([(mitad_x, 0), (mitad_x, alto_px)], fill="black", width=grosor_linea)
+    # Líneas horizontales
+    draw.line([(0, tercio_y), (ancho_px, tercio_y)], fill="black", width=grosor_linea)
+    draw.line([(0, 2 * tercio_y), (ancho_px, 2 * tercio_y)], fill="black", width=grosor_linea)
+
+    celdas = [
+        ("Trat.", tratamiento,  0, 0),
+        ("T°",     temperatura, mitad_x, 0),
+        ("Peso",   peso,        0, tercio_y),
+        ("N°",     numero,      mitad_x, tercio_y),
+        ("Fecha",  fecha,       0, 2 * tercio_y),
+        ("",       "BIOGEM",    mitad_x, 2 * tercio_y),
+    ]
+
+    pad = 12
+    for label, valor, x0, y0 in celdas:
+        cy = y0 + pad
+        if label:
+            draw.text((x0 + pad, cy), label, font=label_font, fill="black")
+            cy += 28
+        # Recortar valor si es muy largo para no salirse de la celda
+        max_ancho_celda = mitad_x - (2 * pad)
+        valor_str = str(valor)[:18]
+        draw.text((x0 + pad, cy), valor_str, font=value_font, fill="black")
+
+    return img
+
+def _imagen_a_escpos_raster(img: Image.Image) -> bytes:
+    """Convierte una imagen PIL a comando ESC/POS GS v 0 (bitmap raster)."""
+    bw = img.convert("L").point(lambda p: 255 if p > 128 else 0).convert("1")
+    width, height = bw.size
+    width_bytes = (width + 7) // 8
+    pixels = bw.load()
+
+    data = bytearray()
+    data += b'\x1d\x76\x30\x00'  # GS v 0, m=0 (normal)
+    data += bytes([width_bytes & 0xFF, (width_bytes >> 8) & 0xFF])
+    data += bytes([height & 0xFF, (height >> 8) & 0xFF])
+
+    for y in range(height):
+        byte = 0
+        bitcount = 0
+        for x in range(width):
+            bit = 1 if pixels[x, y] == 0 else 0  # 0 = negro en modo '1'
+            byte = (byte << 1) | bit
+            bitcount += 1
+            if bitcount == 8:
+                data.append(byte)
+                byte = 0
+                bitcount = 0
+        if bitcount:
+            byte <<= (8 - bitcount)
+            data.append(byte)
+
+    return bytes(data)
+
+@app.get("/etiquetas/personalizada", response_class=HTMLResponse)
+def form_etiqueta_personalizada(request: Request):
+    return templates.TemplateResponse("etiqueta_personalizada.html", {"request": request})
+
+@app.post("/etiquetas/personalizada/print-raw")
+def imprimir_etiqueta_personalizada(
+    tratamiento: str = Form(...),
+    temperatura: str = Form(...),
+    peso:        str = Form(...),
+    numero:      str = Form(...),
+    fecha:       str = Form(...),
+):
+    tratamiento = validar_texto(tratamiento, "Tratamiento", max_len=30)
+    temperatura = validar_texto(temperatura, "Temperatura", max_len=15)
+    peso        = validar_texto(peso, "Peso", max_len=15)
+    numero      = validar_texto(numero, "Número", max_len=15)
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
+        raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
+
+    img = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
+
+    data  = b'\x1b\x40'                    # inicializar
+    data += _imagen_a_escpos_raster(img)   # bitmap de la tabla
+    data += b'\n'
+    salto_dots = 50  # valor calibrado — igual al usado en las otras etiquetas
+    data += b'\x1b\x4a' + bytes([salto_dots])
+
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
+    return {"status": "ok"}
