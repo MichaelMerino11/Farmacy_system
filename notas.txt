@@ -1,0 +1,15 @@
+UBUNTU
+cd ~/Documentos/Farmacy_system
+source .venv/bin/activate   # o como actives tu entorno virtual
+uvicorn app.main:app --reload --port 8765
+
+
+WINDOWS
+cd C:\Users\59399\Music\Farmacia UTN\Farmacy_system
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8765
+
+http://localhost:8765/calibrar/ancho-etiqueta (rectángulo con franjas numeradas cada 50 dots)
+http://localhost:8765/etiquetas/personalizada (llenar el formulario)

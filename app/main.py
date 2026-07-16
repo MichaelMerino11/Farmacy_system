@@ -57,9 +57,15 @@ os.makedirs(BARCODES_DIR, exist_ok=True)
 os.makedirs(MEDIA_DIR,    exist_ok=True)
 
 # ── ETIQUETA PERSONALIZADA (tabla 2x3, impresión rotada) ──────────────────────
-ETIQUETA_ANCHO_IN = 2.5   # ancho de impresión (dirección del cabezal)
-ETIQUETA_ALTO_IN   = 3.2  # largo de papel (dirección de avance)
-ETIQUETA_DPI        = 203  # estándar en impresoras térmicas de 58mm — ajustar si el resultado sale mal escalado
+ETIQUETA_ANCHO_IN = 2.8 / 2.54   # ancho calibrado y confirmado — funciona bien
+ETIQUETA_ALTO_IN  = 2.5 / 2.54   # alto real de la etiqueta física (corregido — antes decía 2.5 en el comentario pero el valor era 2.0)
+ETIQUETA_DPI      = 203
+SALTO_ETIQUETA_PERSONALIZADA = 28   # = 0.3cm de espacio entre etiquetas, convertido a dots (antes era 30, causaba déficit acumulado)
+OFFSET_ETIQUETA_DERECHA = 150
+FULL_HEAD_WIDTH_DOTS = 384
+OFFSET_ETIQUETA_DERECHA = FULL_HEAD_WIDTH_DOTS - int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+
+BIOGEM_LOGO_PATH = os.path.join(MEDIA_DIR, "biogem_logo.png")
 
 FONT_REGULAR_PATH = os.path.join(STATIC_DIR, "fonts", "PlusJakartaSans-Regular.ttf")
 FONT_BOLD_PATH    = os.path.join(STATIC_DIR, "fonts", "bold_pw.ttf")
@@ -1191,40 +1197,66 @@ def _generar_bitmap_etiqueta_personalizada(
     img  = Image.new("RGB", (ancho_px, alto_px), "white")
     draw = ImageDraw.Draw(img)
 
-    label_font = _cargar_fuente(FONT_BOLD_PATH, 22)
-    value_font = _cargar_fuente(FONT_REGULAR_PATH, 26)
+    titulo_font  = _cargar_fuente(FONT_BOLD_PATH, 14)
+    label_font   = _cargar_fuente(FONT_BOLD_PATH, 10)
+    value_font   = _cargar_fuente(FONT_REGULAR_PATH, 12)
+    sello_font   = _cargar_fuente(FONT_BOLD_PATH, 9)
 
-    grosor_linea = 4
-    mitad_x = ancho_px // 2
-    tercio_y = alto_px // 3
+    grosor_linea = 2
+    pad = 6
 
-    # Borde exterior
+    fila_titulo = int(alto_px * 0.22)
+    fila_2      = fila_titulo + int(alto_px * 0.26)
+    fila_3      = fila_2 + int(alto_px * 0.22)
+
     draw.rectangle([0, 0, ancho_px - 1, alto_px - 1], outline="black", width=grosor_linea)
-    # Línea vertical central
-    draw.line([(mitad_x, 0), (mitad_x, alto_px)], fill="black", width=grosor_linea)
-    # Líneas horizontales
-    draw.line([(0, tercio_y), (ancho_px, tercio_y)], fill="black", width=grosor_linea)
-    draw.line([(0, 2 * tercio_y), (ancho_px, 2 * tercio_y)], fill="black", width=grosor_linea)
+    draw.line([(0, fila_titulo), (ancho_px, fila_titulo)], fill="black", width=grosor_linea)
+    draw.line([(0, fila_2), (ancho_px, fila_2)], fill="black", width=grosor_linea)
+    draw.line([(0, fila_3), (ancho_px, fila_3)], fill="black", width=grosor_linea)
 
-    celdas = [
-        ("Trat.", tratamiento,  0, 0),
-        ("T°",     temperatura, mitad_x, 0),
-        ("Peso",   peso,        0, tercio_y),
-        ("N°",     numero,      mitad_x, tercio_y),
-        ("Fecha",  fecha,       0, 2 * tercio_y),
-        ("",       "BIOGEM",    mitad_x, 2 * tercio_y),
-    ]
+    mitad_x = ancho_px // 2
 
-    pad = 12
-    for label, valor, x0, y0 in celdas:
-        cy = y0 + pad
-        if label:
-            draw.text((x0 + pad, cy), label, font=label_font, fill="black")
-            cy += 28
-        # Recortar valor si es muy largo para no salirse de la celda
-        max_ancho_celda = mitad_x - (2 * pad)
-        valor_str = str(valor)[:18]
-        draw.text((x0 + pad, cy), valor_str, font=value_font, fill="black")
+    # Fila 1 — Número + Tratamiento
+    titulo = f"{numero}. {tratamiento}"[:22]
+    draw.text((pad, pad), titulo, font=titulo_font, fill="black")
+
+    # Fila 2 — Peso | Fecha
+    draw.line([(mitad_x, fila_titulo), (mitad_x, fila_2)], fill="black", width=grosor_linea)
+    draw.text((pad, fila_titulo + pad), "Peso", font=label_font, fill="black")
+    draw.text((pad, fila_titulo + pad + 13), str(peso)[:10], font=value_font, fill="black")
+    draw.text((mitad_x + pad, fila_titulo + pad), "Fecha", font=label_font, fill="black")
+    draw.text((mitad_x + pad, fila_titulo + pad + 13), str(fecha)[:10], font=value_font, fill="black")
+
+    # Fila 3 — Temperatura (centrada)
+    texto_temp = f"T° {temperatura}"
+    bbox = draw.textbbox((0, 0), texto_temp, font=value_font)
+    ancho_texto = bbox[2] - bbox[0]
+    draw.text(((ancho_px - ancho_texto) // 2, fila_2 + (fila_3 - fila_2 - 14) // 2),
+              texto_temp, font=value_font, fill="black")
+
+    # Fila 4 — "Experimento BIOGEM" | logo BIOGEM
+    draw.line([(mitad_x, fila_3), (mitad_x, alto_px)], fill="black", width=grosor_linea)
+    draw.text((pad, fila_3 + pad), "Experimento", font=label_font, fill="black")
+    draw.text((pad, fila_3 + pad + 12), "BIOGEM", font=value_font, fill="black")
+
+    # Logo BIOGEM en la celda derecha de la fila 4
+    ancho_celda = (ancho_px - mitad_x) - 12
+    alto_celda  = (alto_px - fila_3) - 8
+    logo = _cargar_logo_bn(BIOGEM_LOGO_PATH, ancho_celda, alto_celda)
+    if logo:
+        pos_x = mitad_x + ((ancho_px - mitad_x) - logo.width) // 2
+        pos_y = fila_3 + ((alto_px - fila_3) - logo.height) // 2
+        img.paste(logo, (pos_x, pos_y))
+    else:
+        # Fallback: círculo con texto si el logo no carga
+        cx = mitad_x + (ancho_px - mitad_x) // 2
+        cy = fila_3 + (alto_px - fila_3) // 2
+        radio = min((ancho_px - mitad_x) // 2 - 10, (alto_px - fila_3) // 2 - 8)
+        draw.ellipse([cx - radio, cy - radio, cx + radio, cy + radio], outline="black", width=2)
+        bbox_sello = draw.textbbox((0, 0), "BIOGEM", font=sello_font)
+        ancho_sello = bbox_sello[2] - bbox_sello[0]
+        alto_sello  = bbox_sello[3] - bbox_sello[1]
+        draw.text((cx - ancho_sello // 2, cy - alto_sello // 2), "BIOGEM", font=sello_font, fill="black")
 
     return img
 
@@ -1276,13 +1308,13 @@ def imprimir_etiqueta_personalizada(
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
         raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
 
-    img = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
+    img_etiqueta = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
+    img_completa = _posicionar_en_cabezal(img_etiqueta, OFFSET_ETIQUETA_DERECHA)
 
-    data  = b'\x1b\x40'                    # inicializar
-    data += _imagen_a_escpos_raster(img)   # bitmap de la tabla
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img_completa)
     data += b'\n'
-    salto_dots = 50  # valor calibrado — igual al usado en las otras etiquetas
-    data += b'\x1b\x4a' + bytes([salto_dots])
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
 
     try:
         enviar_a_impresora(data)
@@ -1291,3 +1323,174 @@ def imprimir_etiqueta_personalizada(
     except Exception as e:
         return {"error": f"No se pudo imprimir: {str(e)}"}
     return {"status": "ok"}
+
+@app.get("/debug/ancho-fino")
+def calibrar_ancho_fino():
+    ancho_px = 420  # probamos un poco más allá de donde se cortó
+    img = Image.new("RGB", (ancho_px, 200), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, ancho_px - 1, 199], outline="black", width=4)
+    for x in range(0, ancho_px, 20):
+        alto_marca = 40 if x % 100 == 0 else 15
+        draw.line([(x, 0), (x, alto_marca)], fill="black", width=1)
+        if x % 100 == 0:
+            draw.text((x + 2, 45), str(x), fill="black")
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([50])
+
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "ancho_px_enviado": ancho_px}
+
+@app.get("/debug/calibrar-dpi")
+def calibrar_dpi():
+    # Cuadrado de exactamente 100x100 px — mide su tamaño físico real con regla
+    img = Image.new("RGB", (100, 100), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, 99, 99], outline="black", width=3)
+    draw.line([(0, 50), (100, 50)], fill="black", width=1)
+    draw.line([(50, 0), (50, 100)], fill="black", width=1)
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([50])
+
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "cuadrado_px": 100}
+
+@app.get("/debug/salto-etiqueta/{salto}")
+def debug_salto_etiqueta(salto: int):
+    """Imprime la tabla 3 veces seguidas con un salto configurable,
+    para encontrar el valor que alinea el contenido con el borde físico de cada etiqueta."""
+    for _ in range(3):
+        img = _generar_bitmap_etiqueta_personalizada("TEST", "25C", "2g", "001", "2026-01-01")
+        data  = b'\x1b\x40'
+        data += _imagen_a_escpos_raster(img)
+        data += b'\n'
+        data += b'\x1b\x4a' + bytes([salto])
+        try:
+            enviar_a_impresora(data)
+        except Exception as e:
+            return {"error": str(e)}
+    return {"status": "ok", "salto_probado": salto}
+
+@app.get("/debug/ancho-cabezal-completo")
+def debug_ancho_cabezal_completo():
+    ancho_px = 384  # ancho estándar típico del cabezal completo en impresoras de 58mm
+    img = Image.new("RGB", (ancho_px, 150), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, ancho_px - 1, 149], outline="black", width=4)
+    for x in range(0, ancho_px, 50):
+        draw.line([(x, 0), (x, 40)], fill="black", width=2)
+        draw.text((x + 2, 45), str(x), fill="black")
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "ancho_px_enviado": ancho_px}
+
+def _posicionar_en_cabezal(img_etiqueta: Image.Image, offset_x: int) -> Image.Image:
+    """Coloca la etiqueta dentro de un lienzo del ancho completo del cabezal,
+    desplazada hacia la derecha para que coincida con la posición física del rollo."""
+    lienzo = Image.new("RGB", (FULL_HEAD_WIDTH_DOTS, img_etiqueta.height), "white")
+    lienzo.paste(img_etiqueta, (offset_x, 0))
+    return lienzo
+
+@app.get("/debug/bordes-papel")
+def debug_bordes_papel():
+    ancho_px = 384
+    img = Image.new("RGB", (ancho_px, 150), "white")
+    draw = ImageDraw.Draw(img)
+    for x in range(0, ancho_px, 10):
+        alto_marca = 30 if x % 20 == 0 else 12
+        draw.line([(x, 0), (x, alto_marca)], fill="black", width=1)
+        if x % 20 == 0:
+            draw.text((x + 1, 33), str(x), fill="black")
+    draw.line([(0, 130), (ancho_px, 130)], fill="black", width=2)
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok"}
+
+@app.get("/debug/calibrar-pitch/{n}")
+def calibrar_pitch(n: int):
+    """Imprime N veces una línea delgada en la parte superior de cada 'etiqueta'.
+    Sirve para medir el desfase acumulado y calcular el pitch real."""
+    ancho_px = int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+    alto_px  = int(ETIQUETA_ALTO_IN * ETIQUETA_DPI)
+
+    for i in range(n):
+        img = Image.new("RGB", (ancho_px, alto_px), "white")
+        draw = ImageDraw.Draw(img)
+        draw.line([(0, 5), (ancho_px, 5)], fill="black", width=3)
+        draw.text((5, 15), f"#{i+1}", fill="black")
+
+        lienzo = _posicionar_en_cabezal(img, OFFSET_ETIQUETA_DERECHA)
+
+        data  = b'\x1b\x40'
+        data += _imagen_a_escpos_raster(lienzo)
+        data += b'\n'
+        data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+        try:
+            enviar_a_impresora(data)
+        except Exception as e:
+            return {"error": str(e)}
+
+    return {"status": "ok", "impresiones": n}
+
+
+def _cargar_logo_bn(path: str, ancho_max: int, alto_max: int):
+    """Carga un logo, lo compone sobre fondo blanco (por si tiene transparencia),
+    lo convierte a blanco/negro puro y lo redimensiona para llenar el espacio disponible."""
+    try:
+        logo_raw = Image.open(path).convert("RGBA")
+        fondo = Image.new("RGBA", logo_raw.size, (255, 255, 255, 255))
+        logo_compuesto = Image.alpha_composite(fondo, logo_raw).convert("L")
+        logo_compuesto.thumbnail((ancho_max, alto_max))
+        logo_bn = logo_compuesto.point(lambda p: 255 if p > 160 else 0).convert("1")
+        return logo_bn.convert("RGB")
+    except Exception:
+        return None
+
+@app.get("/debug/ver-logo")
+def debug_ver_logo():
+    try:
+        logo_original = Image.open(BIOGEM_LOGO_PATH)
+        info = {
+            "existe": True,
+            "tamano_original": logo_original.size,
+            "modo_original": logo_original.mode,
+        }
+    except Exception as e:
+        return {"existe": False, "error": str(e)}
+
+    logo_procesado = _cargar_logo_bn(BIOGEM_LOGO_PATH, 80)
+    if logo_procesado:
+        ruta_debug = os.path.join(EXE_DIR, "logo_debug.png")
+        logo_procesado.save(ruta_debug)
+        info["tamano_procesado"] = logo_procesado.size
+        info["guardado_en"] = ruta_debug
+    else:
+        info["procesado"] = "FALLÓ — devolvió None"
+
+    return info
