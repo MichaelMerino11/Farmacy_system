@@ -13,3 +13,68 @@ uvicorn app.main:app --reload --port 8765
 
 http://localhost:8765/calibrar/ancho-etiqueta (rectángulo con franjas numeradas cada 50 dots)
 http://localhost:8765/etiquetas/personalizada (llenar el formulario)
+
+
+===== CREAR EL EJECUTABLE DESPÚES DEL DESARROLLO
+
+1. Detén cualquier proceso corriendo (el .exe viejo o uvicorn en modo desarrollo):
+Get-Process UTN_Laboratorio -ErrorAction SilentlyContinue | Stop-Process -Force
+
+2. Compila de nuevo
+cd C:\Users\maint\Documents\Farmacy_system
+.venv\Scripts\Activate.ps1
+pyinstaller launcher.spec
+
+3. Verifica que los archivos clave se hayan copiado:
+cd dist\UTN_Laboratorio
+dir _internal\app\media\biogem_logo.png
+dir _internal\app\templates\etiqueta_personalizada.html
+dir _internal\app\static\fonts\bold_pw.ttf
+
+4. Borra cualquier data.db vieja (crítico esta vez, por el fix de unique=True):
+del data.db -ErrorAction SilentlyContinue
+Remove-Item app\static\barcodes\*.png -Force -ErrorAction SilentlyContinue
+Remove-Item backups\* -Force -ErrorAction SilentlyContinue
+
+5. Ejecuta el .exe y haz la prueba completa final:
+.\UTN_Laboratorio.exe
+
+6. Si todo pasa, detén el .exe y limpia una última vez antes de comprimir:
+Get-Process UTN_Laboratorio -ErrorAction SilentlyContinue | Stop-Process -Force
+del data.db -ErrorAction SilentlyContinue
+Remove-Item app\static\barcodes\*.png -Force -ErrorAction SilentlyContinue
+Remove-Item backups\* -Force -ErrorAction SilentlyContinue
+
+7. Comprimir y realizar la entrega
+
+
+===== COPIAR ARCHIVOS DE EJECUACIÓN
+
+Lo que SÍ debes copiar de la carpeta vieja:
+1. driver/ — los drivers de la impresora térmica, no cambiaron nada en todo este proceso
+2. instalar_impresora.bat — tampoco cambió
+3. .env — aquí ojo: en tu ls de Git Bash no aparece, pero es casi seguro que sí existe y solo está oculto porque ls sin -a no muestra archivos que empiezan con punto
+
+Lo que NO debes copiar:
+1. data.db — es la base de datos vieja, con el esquema anterior (unique=True todavía activo) y probablemente con registros de prueba. Si la copias, vuelves a meter el bug que ya arreglaste.
+2. _internal/ — es el código viejo compilado, sin ninguno de los fixes recientes.
+3. UTN_Laboratorio.exe — el ejecutable viejo.
+
+(ajustar ruta)
+Copy-Item "C:\Users\maint\Documents\Nueva carpeta\UTN_Laboratorio\driver" -Destination "." -Recurse
+Copy-Item "C:\Users\maint\Documents\Nueva carpeta\UTN_Laboratorio\instalar_impresora.bat" -Destination "."
+Copy-Item "C:\Users\maint\Documents\Nueva carpeta\UTN_Laboratorio\.env" -Destination "."
+
+cd C:\Users\maint\Documents\Farmacy_system\dist\UTN_Laboratorio
+dir
+
+dir driver
+
+UTN_Laboratorio/
+├── app/                     (vacía, se llenará con códigos de barra al usar)
+├── backups/                 (vacía)
+├── driver/
+├── _internal/
+├── .env
+├── instalar_impresora.bat
+└── UTN_Laboratorio.exe

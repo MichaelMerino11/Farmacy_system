@@ -50,7 +50,7 @@ else:
 STATIC_DIR    = os.path.join(INTERNAL_DIR, "app", "static")
 MEDIA_DIR     = os.path.join(INTERNAL_DIR, "app", "media")
 TEMPLATES_DIR = os.path.join(INTERNAL_DIR, "app", "templates")
-BARCODES_DIR  = os.path.join(EXE_DIR, "app", "static", "barcodes")  # writable junto al exe
+BARCODES_DIR  = os.path.join(STATIC_DIR, "barcodes")
 
 os.makedirs(STATIC_DIR,   exist_ok=True)
 os.makedirs(BARCODES_DIR, exist_ok=True)
@@ -1197,17 +1197,16 @@ def _generar_bitmap_etiqueta_personalizada(
     img  = Image.new("RGB", (ancho_px, alto_px), "white")
     draw = ImageDraw.Draw(img)
 
-    titulo_font  = _cargar_fuente(FONT_BOLD_PATH, 14)
-    label_font   = _cargar_fuente(FONT_BOLD_PATH, 10)
-    value_font   = _cargar_fuente(FONT_REGULAR_PATH, 12)
-    sello_font   = _cargar_fuente(FONT_BOLD_PATH, 9)
+    titulo_font = _cargar_fuente(FONT_BOLD_PATH, 19)
+    label_font  = _cargar_fuente(FONT_BOLD_PATH, 18)
+    value_font  = _cargar_fuente(FONT_REGULAR_PATH, 17.5)
 
     grosor_linea = 2
-    pad = 6
 
     fila_titulo = int(alto_px * 0.22)
     fila_2      = fila_titulo + int(alto_px * 0.26)
-    fila_3      = fila_2 + int(alto_px * 0.22)
+    fila_3      = fila_2 + int(alto_px * 0.26)
+    # fila_4 llega hasta alto_px
 
     draw.rectangle([0, 0, ancho_px - 1, alto_px - 1], outline="black", width=grosor_linea)
     draw.line([(0, fila_titulo), (ancho_px, fila_titulo)], fill="black", width=grosor_linea)
@@ -1216,47 +1215,56 @@ def _generar_bitmap_etiqueta_personalizada(
 
     mitad_x = ancho_px // 2
 
-    # Fila 1 — Número + Tratamiento
-    titulo = f"{numero}. {tratamiento}"[:22]
-    draw.text((pad, pad), titulo, font=titulo_font, fill="black")
+    def centrar_texto(texto, font, x0, x1, y):
+        bbox = draw.textbbox((0, 0), texto, font=font)
+        ancho_texto = bbox[2] - bbox[0]
+        x = x0 + ((x1 - x0) - ancho_texto) // 2
+        draw.text((x, y), texto, font=font, fill="black")
 
-    # Fila 2 — Peso | Fecha
+    # Fila 1 — Número + Tratamiento (centrado, letra grande)
+    titulo = f"{numero} {tratamiento}"[:20]
+    centrar_texto(titulo, titulo_font, 0, ancho_px, (fila_titulo - 20) // 2)
+
+    # Fila 2 — Peso | Fecha (label arriba, valor abajo, todo centrado)
     draw.line([(mitad_x, fila_titulo), (mitad_x, fila_2)], fill="black", width=grosor_linea)
-    draw.text((pad, fila_titulo + pad), "Peso", font=label_font, fill="black")
-    draw.text((pad, fila_titulo + pad + 13), str(peso)[:10], font=value_font, fill="black")
-    draw.text((mitad_x + pad, fila_titulo + pad), "Fecha", font=label_font, fill="black")
-    draw.text((mitad_x + pad, fila_titulo + pad + 13), str(fecha)[:10], font=value_font, fill="black")
+    alto_fila2 = fila_2 - fila_titulo
+    centrar_texto("Peso", label_font, 0, mitad_x, fila_titulo + 4)
+    centrar_texto(str(peso)[:8], value_font, 0, mitad_x, fila_titulo + alto_fila2 // 2 + 2)
+    centrar_texto("Fecha", label_font, mitad_x, ancho_px, fila_titulo + 4)
+    centrar_texto(str(fecha)[:10], value_font, mitad_x, ancho_px, fila_titulo + alto_fila2 // 2 + 2)
 
-    # Fila 3 — Temperatura (centrada)
-    texto_temp = f"T° {temperatura}"
-    bbox = draw.textbbox((0, 0), texto_temp, font=value_font)
-    ancho_texto = bbox[2] - bbox[0]
-    draw.text(((ancho_px - ancho_texto) // 2, fila_2 + (fila_3 - fila_2 - 14) // 2),
-              texto_temp, font=value_font, fill="black")
+    # Fila 3 — N°F | Temperatura (label arriba, valor abajo, todo centrado)
+# Fila 3 — F | T (label a la izquierda, valor a la derecha, en la misma línea)
+    draw.line([(mitad_x, fila_2), (mitad_x, fila_3)], fill="black", width=grosor_linea)
+    alto_fila3 = fila_3 - fila_2
+    y_centro_fila3 = fila_2 + (alto_fila3 - 20) // 2  # centrado vertical aproximado
 
-    # Fila 4 — "Experimento BIOGEM" | logo BIOGEM
-    draw.line([(mitad_x, fila_3), (mitad_x, alto_px)], fill="black", width=grosor_linea)
-    draw.text((pad, fila_3 + pad), "Experimento", font=label_font, fill="black")
-    draw.text((pad, fila_3 + pad + 12), "BIOGEM", font=value_font, fill="black")
+    def texto_horizontal_centrado(label, valor, x0, x1, y):
+        """Dibuja 'label: valor' como una sola línea centrada horizontalmente en el rango x0-x1."""
+        texto_completo = f"{label}: {valor}"
+        bbox = draw.textbbox((0, 0), texto_completo, font=value_font)
+        ancho_texto = bbox[2] - bbox[0]
+        x_inicio = x0 + ((x1 - x0) - ancho_texto) // 2
 
-    # Logo BIOGEM en la celda derecha de la fila 4
-    ancho_celda = (ancho_px - mitad_x) - 12
-    alto_celda  = (alto_px - fila_3) - 8
-    logo = _cargar_logo_bn(BIOGEM_LOGO_PATH, ancho_celda, alto_celda)
+        bbox_label = draw.textbbox((0, 0), f"{label}: ", font=value_font)
+        ancho_label = bbox_label[2] - bbox_label[0]
+
+        draw.text((x_inicio, y), f"{label}:", font=label_font, fill="black")
+        draw.text((x_inicio + ancho_label, y), str(valor), font=value_font, fill="black")
+
+    texto_horizontal_centrado("F", str(numero)[:8], 0, mitad_x, y_centro_fila3)
+    texto_horizontal_centrado("T", f"{temperatura}°", mitad_x, ancho_px, y_centro_fila3)
+
+    # Fila 4 — Logo BIOGEM ocupando todo el ancho, centrado
+    ancho_disponible = ancho_px - 16
+    alto_disponible   = (alto_px - fila_3) - 8
+    logo = _cargar_logo_bn(BIOGEM_LOGO_PATH, ancho_disponible, alto_disponible)
     if logo:
-        pos_x = mitad_x + ((ancho_px - mitad_x) - logo.width) // 2
+        pos_x = (ancho_px - logo.width) // 2
         pos_y = fila_3 + ((alto_px - fila_3) - logo.height) // 2
         img.paste(logo, (pos_x, pos_y))
     else:
-        # Fallback: círculo con texto si el logo no carga
-        cx = mitad_x + (ancho_px - mitad_x) // 2
-        cy = fila_3 + (alto_px - fila_3) // 2
-        radio = min((ancho_px - mitad_x) // 2 - 10, (alto_px - fila_3) // 2 - 8)
-        draw.ellipse([cx - radio, cy - radio, cx + radio, cy + radio], outline="black", width=2)
-        bbox_sello = draw.textbbox((0, 0), "BIOGEM", font=sello_font)
-        ancho_sello = bbox_sello[2] - bbox_sello[0]
-        alto_sello  = bbox_sello[3] - bbox_sello[1]
-        draw.text((cx - ancho_sello // 2, cy - alto_sello // 2), "BIOGEM", font=sello_font, fill="black")
+        centrar_texto("BIOGEM", titulo_font, 0, ancho_px, fila_3 + (alto_px - fila_3 - 20) // 2)
 
     return img
 
@@ -1301,15 +1309,15 @@ def imprimir_etiqueta_personalizada(
     numero:      str = Form(...),
     fecha:       str = Form(...),
 ):
-    tratamiento = validar_texto(tratamiento, "Tratamiento", max_len=30)
-    temperatura = validar_texto(temperatura, "Temperatura", max_len=15)
-    peso        = validar_texto(peso, "Peso", max_len=15)
-    numero      = validar_texto(numero, "Número", max_len=15)
+    tratamiento = validar_campo_etiqueta(tratamiento, "Tratamiento", max_len=20)
+    temperatura = validar_campo_etiqueta(temperatura, "Temperatura", max_len=10)
+    peso        = validar_campo_etiqueta(peso, "Peso", max_len=10)
+    numero      = validar_campo_etiqueta(numero, "Número", max_len=10)
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
         raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
 
-    img_etiqueta = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
-    img_completa = _posicionar_en_cabezal(img_etiqueta, OFFSET_ETIQUETA_DERECHA)
+    img = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
+    img_completa = _posicionar_en_cabezal(img, OFFSET_ETIQUETA_DERECHA)
 
     data  = b'\x1b\x40'
     data += _imagen_a_escpos_raster(img_completa)
@@ -1494,3 +1502,17 @@ def debug_ver_logo():
         info["procesado"] = "FALLÓ — devolvió None"
 
     return info
+
+def validar_campo_etiqueta(valor: str, campo: str, max_len: int = 20) -> str:
+    """Validación flexible para campos de la etiqueta personalizada.
+    Acepta letras, números, decimales, y símbolos comunes (°, %, guiones, comas),
+    pero bloquea caracteres que romperían la impresión o el layout."""
+    valor = valor.strip()
+    if not valor:
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' no puede estar vacío.")
+    if len(valor) > max_len:
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' excede {max_len} caracteres.")
+    patron = r"^[\w\s\-\.\,\/°%áéíóúÁÉÍÓÚñÑ]+$"
+    if not re.match(patron, valor):
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' contiene caracteres no permitidos.")
+    return valor

@@ -26,7 +26,7 @@ class Muestra(Base):
     codigo_utn_especie        = Column(String(50), nullable=False)
     numero_replica            = Column(Integer, nullable=False)
     numero_tubo_en_caja       = Column(Integer, nullable=False)
-    numero_muestra_ccmbi_ogem = Column(String(50), nullable=False, unique=True)
+    numero_muestra_ccmbi_ogem = Column(String(50), nullable=False)
     medio_cultivo             = Column(String(50), nullable=False)
     ubicacion_refrigerador    = Column(String(200), nullable=True)
     codigo_barra              = Column(String(80), nullable=False, unique=True, index=True)
