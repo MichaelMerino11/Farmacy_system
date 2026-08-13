@@ -3,6 +3,7 @@ import os
 import platform
 import re
 from datetime import datetime, timedelta
+from PIL import Image, ImageDraw, ImageFont
 
 from fastapi import FastAPI, Request, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -49,11 +50,26 @@ else:
 STATIC_DIR    = os.path.join(INTERNAL_DIR, "app", "static")
 MEDIA_DIR     = os.path.join(INTERNAL_DIR, "app", "media")
 TEMPLATES_DIR = os.path.join(INTERNAL_DIR, "app", "templates")
-BARCODES_DIR  = os.path.join(EXE_DIR, "app", "static", "barcodes")  # writable junto al exe
+BARCODES_DIR  = os.path.join(STATIC_DIR, "barcodes")
 
 os.makedirs(STATIC_DIR,   exist_ok=True)
 os.makedirs(BARCODES_DIR, exist_ok=True)
 os.makedirs(MEDIA_DIR,    exist_ok=True)
+
+# ── ETIQUETA PERSONALIZADA (tabla 2x3, impresión rotada) ──────────────────────
+ETIQUETA_ANCHO_IN = 2.8 / 2.54   # ancho calibrado y confirmado — funciona bien
+ETIQUETA_ALTO_IN  = 2.5 / 2.54   # alto real de la etiqueta física (corregido — antes decía 2.5 en el comentario pero el valor era 2.0)
+ETIQUETA_DPI      = 203
+SALTO_ETIQUETA_PERSONALIZADA = 28   # = 0.3cm de espacio entre etiquetas, convertido a dots (antes era 30, causaba déficit acumulado)
+OFFSET_ETIQUETA_DERECHA = 150
+FULL_HEAD_WIDTH_DOTS = 384
+OFFSET_ETIQUETA_DERECHA = FULL_HEAD_WIDTH_DOTS - int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+
+BIOGEM_LOGO_PATH = os.path.join(MEDIA_DIR, "biogem_logo.png")
+
+FONT_REGULAR_PATH = os.path.join(STATIC_DIR, "fonts", "PlusJakartaSans-Regular.ttf")
+FONT_BOLD_PATH    = os.path.join(STATIC_DIR, "fonts", "bold_pw.ttf")
+
 
 
 # ── APP ────────────────────────────────────────────────────────────────────────
@@ -467,14 +483,13 @@ def crear_muestra(
     caja_id:                   int = Form(...),
     codigo_utn_especie:        str = Form(...),
     numero_replica:            int = Form(...),
-    numero_tubo_en_caja:       int = Form(...),
+    numero_tubo_en_caja:       str = Form(...),
     numero_muestra_ccmbi_ogem: str = Form(...),
     medio_cultivo:             str = Form(...),
     especie:                   str = Form("NO"),
     seguimiento:               str = Form("NO"),
     identificacion_taxonomica: str = Form(""),
     origen_muestra:            str = Form(...),
-    cantidad_repeticiones:     int = Form(1),
 ):
     codigo_utn_especie        = validar_texto(codigo_utn_especie, "Código UTN especie", max_len=50)
     numero_muestra_ccmbi_ogem = validar_texto(numero_muestra_ccmbi_ogem, "N° muestra CCMBIOGEM", max_len=50)
@@ -487,49 +502,54 @@ def crear_muestra(
         seguimiento = "NO"
     if numero_replica < 1:
         raise HTTPException(status_code=422, detail="El número de réplica debe ser mayor a 0.")
-    if cantidad_repeticiones < 1 or cantidad_repeticiones > CAPACIDAD_CAJA:
-        raise HTTPException(status_code=422, detail=f"La cantidad de repeticiones debe estar entre 1 y {CAPACIDAD_CAJA}.")
-    if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
-        raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
+    def parsear_tubos(valor: str) -> list[int]:
+        tubos = []
+        for parte in valor.split(","):
+            parte = parte.strip()
+            if "-" in parte:
+                inicio, fin = parte.split("-")
+                tubos.extend(range(int(inicio), int(fin) + 1))
+            else:
+                tubos.append(int(parte))
+        return sorted(set(tubos))
+
+    try:
+        tubos_solicitados = parsear_tubos(numero_tubo_en_caja)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Formato de tubo inválido. Usa: 5 o 1-12 o 1-5,10-15")
+
+    if not tubos_solicitados:
+        raise HTTPException(status_code=422, detail="Debes indicar al menos un tubo.")
+
+    for t in tubos_solicitados:
+        if not (1 <= t <= CAPACIDAD_CAJA):
+            raise HTTPException(status_code=422, detail=f"El tubo {t} está fuera del rango permitido (1-{CAPACIDAD_CAJA}).")
 
     db: Session = SessionLocal()
-
     caja = db.query(Caja).filter(Caja.id == caja_id).first()
     if not caja:
         db.close()
         raise HTTPException(status_code=422, detail="La caja seleccionada no existe.")
 
     ocupadas = contar_muestras_en_caja(db, caja_id)
-    if ocupadas + cantidad_repeticiones > CAPACIDAD_CAJA:
+    if ocupadas + len(tubos_solicitados) > CAPACIDAD_CAJA:
         libres = CAPACIDAD_CAJA - ocupadas
         db.close()
-        raise HTTPException(status_code=422, detail=f"No hay espacio suficiente. La caja tiene {libres} espacio(s) libre(s) y necesitas {cantidad_repeticiones}.")
+        raise HTTPException(status_code=422, detail=f"No hay espacio suficiente. La caja tiene {libres} espacio(s) libre(s) y necesitas {len(tubos_solicitados)}.")
 
     tubos_ocupados = {m.numero_tubo_en_caja for m in db.query(Muestra).filter(Muestra.caja_id == caja_id).all()}
-    if numero_tubo_en_caja in tubos_ocupados:
+    tubos_ya_ocupados = [t for t in tubos_solicitados if t in tubos_ocupados]
+    if tubos_ya_ocupados:
         db.close()
-        raise HTTPException(status_code=422, detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en la caja '{caja.nombre}'.")
-    tubos_necesarios = []
-    tubo_actual = numero_tubo_en_caja
-    for _ in range(cantidad_repeticiones):
-        while tubo_actual in tubos_ocupados and tubo_actual <= CAPACIDAD_CAJA:
-            tubo_actual += 1
-        if tubo_actual > CAPACIDAD_CAJA:
-            db.close()
-            raise HTTPException(status_code=422, detail="No hay suficientes tubos disponibles desde el tubo indicado.")
-        tubos_necesarios.append(tubo_actual)
-        tubos_ocupados.add(tubo_actual)
-        tubo_actual += 1
-    existe = db.query(Muestra).filter(Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem).first()
-    if existe:
-        db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe una muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+        raise HTTPException(status_code=422, detail=f"Los tubos {tubos_ya_ocupados} ya están ocupados en la caja '{caja.nombre}'.")
+
     ultimo       = db.query(Muestra).order_by(Muestra.id.desc()).first()
     nuevo_numero = 1 if not ultimo else ultimo.id + 1
     while db.query(Muestra).filter(Muestra.codigo_barra == f"UTN-2026-{str(nuevo_numero).zfill(5)}").first():
         nuevo_numero += 1
+
     primera_muestra = None
-    for i, tubo in enumerate(tubos_necesarios):
+    for i, tubo in enumerate(tubos_solicitados):
         replica_num = numero_replica + i
         cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
         m = Muestra(
@@ -552,15 +572,18 @@ def crear_muestra(
         db.add(m)
         if i == 0:
             primera_muestra = m
+
     db.commit()
     db.refresh(primera_muestra)
-    for i in range(cantidad_repeticiones):
+
+    for i in range(len(tubos_solicitados)):
         cb = f"UTN-2026-{str(nuevo_numero + i).zfill(5)}"
         try:
             code128 = barcode.get("code128", cb, writer=ImageWriter())
             code128.save(os.path.join(BARCODES_DIR, cb))
         except Exception:
             pass
+
     db.close()
     return RedirectResponse(url=f"/?muestra_id={primera_muestra.id}", status_code=303)
 
@@ -635,6 +658,7 @@ def editar_muestra(
     muestra_id:                int,
     codigo_utn_especie:        str = Form(...),
     numero_replica:            int = Form(...),
+    numero_tubo_en_caja:       int = Form(...),
     numero_muestra_ccmbi_ogem: str = Form(...),
     medio_cultivo:             str = Form(...),
     especie:                   str = Form("NO"),
@@ -657,14 +681,27 @@ def editar_muestra(
     if not muestra:
         db.close()
         raise HTTPException(status_code=404, detail="Muestra no encontrada.")
-    existe = db.query(Muestra).filter(
+    """ existe = db.query(Muestra).filter(
         Muestra.numero_muestra_ccmbi_ogem == numero_muestra_ccmbi_ogem,
         Muestra.id != muestra_id
     ).first()
     if existe:
         db.close()
-        raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.")
+        raise HTTPException(status_code=422, detail=f"Ya existe otra muestra con N° CCMBIOGEM '{numero_muestra_ccmbi_ogem}'.") """
     caja = db.query(Caja).filter(Caja.id == muestra.caja_id).first()
+    if numero_tubo_en_caja != muestra.numero_tubo_en_caja:
+        if not (1 <= numero_tubo_en_caja <= CAPACIDAD_CAJA):
+            db.close()
+            raise HTTPException(status_code=422, detail=f"El tubo debe estar entre 1 y {CAPACIDAD_CAJA}.")
+        tubo_ocupado = db.query(Muestra).filter(
+            Muestra.caja_id == muestra.caja_id,
+            Muestra.numero_tubo_en_caja == numero_tubo_en_caja,
+            Muestra.id != muestra_id,
+        ).first()
+        if tubo_ocupado:
+            db.close()
+            raise HTTPException(status_code=422, detail=f"El tubo #{numero_tubo_en_caja} ya está ocupado en esta caja.")
+        muestra.numero_tubo_en_caja = numero_tubo_en_caja
     muestra.codigo_utn_especie        = codigo_utn_especie
     muestra.numero_replica            = numero_replica
     muestra.numero_muestra_ccmbi_ogem = numero_muestra_ccmbi_ogem
@@ -1076,6 +1113,40 @@ def generar_pdf_etiqueta(muestra_id: int):
     return Response(content=pdf, media_type="application/pdf")
 
 
+@app.get("/cajas/{caja_id}/print-raw")
+def imprimir_etiqueta_caja(caja_id: int):
+    db   = SessionLocal()
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    db.close()
+    if not caja:
+        return {"error": "No existe"}
+    tipo           = "Vertical" if caja.congelador == 1 else "Horizontal"
+    codigo_barcode = str(caja.id).zfill(5)
+    linea1         = caja.nombre[:20].encode()
+    linea2         = f"{tipo} P{caja.piso} Pos{caja.posicion}".encode()
+    data  = b'\x1b\x40'
+    data += b'\x1b\x61\x02'
+    data += b'\x1d\x68\x28'
+    data += b'\x1d\x77\x02'
+    data += b'\x1d\x48\x00'
+    data += b'\x1d\x6b\x49'
+    data += bytes([len(codigo_barcode.encode())])
+    data += codigo_barcode.encode()
+    data += b'\x1b\x4a\x04'
+    data += b'\x1b\x4d\x01'
+    data += b'\x1d\x21\x00'
+    data += linea1 + b'\n'
+    data += linea2 + b'\n'
+    salto_dots = 50
+    data += b'\x1b\x4a' + bytes([salto_dots])
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
+    return {"status": "ok"}
+
 # ── CALIBRACIÓN ────────────────────────────────────────────────────────────────
 
 @app.get("/debug/printer")
@@ -1110,3 +1181,338 @@ def calibrar(salto: int):
     except Exception as e:
         return {"error": str(e)}
     return {"status": f"Impreso con salto={salto}"}
+
+def _cargar_fuente(path: str, size: int):
+    try:
+        return ImageFont.truetype(path, size)
+    except Exception:
+        return ImageFont.load_default()
+
+def _generar_bitmap_etiqueta_personalizada(
+    tratamiento: str, temperatura: str, peso: str, numero: str, fecha: str
+) -> Image.Image:
+    ancho_px = int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+    alto_px  = int(ETIQUETA_ALTO_IN * ETIQUETA_DPI)
+
+    img  = Image.new("RGB", (ancho_px, alto_px), "white")
+    draw = ImageDraw.Draw(img)
+
+    titulo_font = _cargar_fuente(FONT_BOLD_PATH, 19)
+    label_font  = _cargar_fuente(FONT_BOLD_PATH, 18)
+    value_font  = _cargar_fuente(FONT_REGULAR_PATH, 17.5)
+
+    grosor_linea = 2
+
+    fila_titulo = int(alto_px * 0.22)
+    fila_2      = fila_titulo + int(alto_px * 0.26)
+    fila_3      = fila_2 + int(alto_px * 0.26)
+    # fila_4 llega hasta alto_px
+
+    draw.rectangle([0, 0, ancho_px - 1, alto_px - 1], outline="black", width=grosor_linea)
+    draw.line([(0, fila_titulo), (ancho_px, fila_titulo)], fill="black", width=grosor_linea)
+    draw.line([(0, fila_2), (ancho_px, fila_2)], fill="black", width=grosor_linea)
+    draw.line([(0, fila_3), (ancho_px, fila_3)], fill="black", width=grosor_linea)
+
+    mitad_x = ancho_px // 2
+
+    def centrar_texto(texto, font, x0, x1, y):
+        bbox = draw.textbbox((0, 0), texto, font=font)
+        ancho_texto = bbox[2] - bbox[0]
+        x = x0 + ((x1 - x0) - ancho_texto) // 2
+        draw.text((x, y), texto, font=font, fill="black")
+
+    # Fila 1 — Número + Tratamiento (centrado, letra grande)
+    titulo = f"{numero} {tratamiento}"[:20]
+    centrar_texto(titulo, titulo_font, 0, ancho_px, (fila_titulo - 20) // 2)
+
+    # Fila 2 — Peso | Fecha (label arriba, valor abajo, todo centrado)
+    draw.line([(mitad_x, fila_titulo), (mitad_x, fila_2)], fill="black", width=grosor_linea)
+    alto_fila2 = fila_2 - fila_titulo
+    centrar_texto("Peso", label_font, 0, mitad_x, fila_titulo + 4)
+    centrar_texto(str(peso)[:8], value_font, 0, mitad_x, fila_titulo + alto_fila2 // 2 + 2)
+    centrar_texto("Fecha", label_font, mitad_x, ancho_px, fila_titulo + 4)
+    centrar_texto(str(fecha)[:10], value_font, mitad_x, ancho_px, fila_titulo + alto_fila2 // 2 + 2)
+
+    # Fila 3 — N°F | Temperatura (label arriba, valor abajo, todo centrado)
+# Fila 3 — F | T (label a la izquierda, valor a la derecha, en la misma línea)
+    draw.line([(mitad_x, fila_2), (mitad_x, fila_3)], fill="black", width=grosor_linea)
+    alto_fila3 = fila_3 - fila_2
+    y_centro_fila3 = fila_2 + (alto_fila3 - 20) // 2  # centrado vertical aproximado
+
+    def texto_horizontal_centrado(label, valor, x0, x1, y):
+        """Dibuja 'label: valor' como una sola línea centrada horizontalmente en el rango x0-x1."""
+        texto_completo = f"{label}: {valor}"
+        bbox = draw.textbbox((0, 0), texto_completo, font=value_font)
+        ancho_texto = bbox[2] - bbox[0]
+        x_inicio = x0 + ((x1 - x0) - ancho_texto) // 2
+
+        bbox_label = draw.textbbox((0, 0), f"{label}: ", font=value_font)
+        ancho_label = bbox_label[2] - bbox_label[0]
+
+        draw.text((x_inicio, y), f"{label}:", font=label_font, fill="black")
+        draw.text((x_inicio + ancho_label, y), str(valor), font=value_font, fill="black")
+
+    texto_horizontal_centrado("F", str(numero)[:8], 0, mitad_x, y_centro_fila3)
+    texto_horizontal_centrado("T", f"{temperatura}°", mitad_x, ancho_px, y_centro_fila3)
+
+    # Fila 4 — Logo BIOGEM ocupando todo el ancho, centrado
+    ancho_disponible = ancho_px - 16
+    alto_disponible   = (alto_px - fila_3) - 8
+    logo = _cargar_logo_bn(BIOGEM_LOGO_PATH, ancho_disponible, alto_disponible)
+    if logo:
+        pos_x = (ancho_px - logo.width) // 2
+        pos_y = fila_3 + ((alto_px - fila_3) - logo.height) // 2
+        img.paste(logo, (pos_x, pos_y))
+    else:
+        centrar_texto("BIOGEM", titulo_font, 0, ancho_px, fila_3 + (alto_px - fila_3 - 20) // 2)
+
+    return img
+
+def _imagen_a_escpos_raster(img: Image.Image) -> bytes:
+    """Convierte una imagen PIL a comando ESC/POS GS v 0 (bitmap raster)."""
+    bw = img.convert("L").point(lambda p: 255 if p > 128 else 0).convert("1")
+    width, height = bw.size
+    width_bytes = (width + 7) // 8
+    pixels = bw.load()
+
+    data = bytearray()
+    data += b'\x1d\x76\x30\x00'  # GS v 0, m=0 (normal)
+    data += bytes([width_bytes & 0xFF, (width_bytes >> 8) & 0xFF])
+    data += bytes([height & 0xFF, (height >> 8) & 0xFF])
+
+    for y in range(height):
+        byte = 0
+        bitcount = 0
+        for x in range(width):
+            bit = 1 if pixels[x, y] == 0 else 0  # 0 = negro en modo '1'
+            byte = (byte << 1) | bit
+            bitcount += 1
+            if bitcount == 8:
+                data.append(byte)
+                byte = 0
+                bitcount = 0
+        if bitcount:
+            byte <<= (8 - bitcount)
+            data.append(byte)
+
+    return bytes(data)
+
+@app.get("/etiquetas/personalizada", response_class=HTMLResponse)
+def form_etiqueta_personalizada(request: Request):
+    return templates.TemplateResponse("etiqueta_personalizada.html", {"request": request})
+
+@app.post("/etiquetas/personalizada/print-raw")
+def imprimir_etiqueta_personalizada(
+    tratamiento: str = Form(...),
+    temperatura: str = Form(...),
+    peso:        str = Form(...),
+    numero:      str = Form(...),
+    fecha:       str = Form(...),
+):
+    tratamiento = validar_campo_etiqueta(tratamiento, "Tratamiento", max_len=20)
+    temperatura = validar_campo_etiqueta(temperatura, "Temperatura", max_len=10)
+    peso        = validar_campo_etiqueta(peso, "Peso", max_len=10)
+    numero      = validar_campo_etiqueta(numero, "Número", max_len=10)
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
+        raise HTTPException(status_code=422, detail="La fecha debe tener formato YYYY-MM-DD.")
+
+    img = _generar_bitmap_etiqueta_personalizada(tratamiento, temperatura, peso, numero, fecha)
+    img_completa = _posicionar_en_cabezal(img, OFFSET_ETIQUETA_DERECHA)
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img_completa)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+
+    try:
+        enviar_a_impresora(data)
+    except RuntimeError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"No se pudo imprimir: {str(e)}"}
+    return {"status": "ok"}
+
+@app.get("/debug/ancho-fino")
+def calibrar_ancho_fino():
+    ancho_px = 420  # probamos un poco más allá de donde se cortó
+    img = Image.new("RGB", (ancho_px, 200), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, ancho_px - 1, 199], outline="black", width=4)
+    for x in range(0, ancho_px, 20):
+        alto_marca = 40 if x % 100 == 0 else 15
+        draw.line([(x, 0), (x, alto_marca)], fill="black", width=1)
+        if x % 100 == 0:
+            draw.text((x + 2, 45), str(x), fill="black")
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([50])
+
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "ancho_px_enviado": ancho_px}
+
+@app.get("/debug/calibrar-dpi")
+def calibrar_dpi():
+    # Cuadrado de exactamente 100x100 px — mide su tamaño físico real con regla
+    img = Image.new("RGB", (100, 100), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, 99, 99], outline="black", width=3)
+    draw.line([(0, 50), (100, 50)], fill="black", width=1)
+    draw.line([(50, 0), (50, 100)], fill="black", width=1)
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([50])
+
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "cuadrado_px": 100}
+
+@app.get("/debug/salto-etiqueta/{salto}")
+def debug_salto_etiqueta(salto: int):
+    """Imprime la tabla 3 veces seguidas con un salto configurable,
+    para encontrar el valor que alinea el contenido con el borde físico de cada etiqueta."""
+    for _ in range(3):
+        img = _generar_bitmap_etiqueta_personalizada("TEST", "25C", "2g", "001", "2026-01-01")
+        data  = b'\x1b\x40'
+        data += _imagen_a_escpos_raster(img)
+        data += b'\n'
+        data += b'\x1b\x4a' + bytes([salto])
+        try:
+            enviar_a_impresora(data)
+        except Exception as e:
+            return {"error": str(e)}
+    return {"status": "ok", "salto_probado": salto}
+
+@app.get("/debug/ancho-cabezal-completo")
+def debug_ancho_cabezal_completo():
+    ancho_px = 384  # ancho estándar típico del cabezal completo en impresoras de 58mm
+    img = Image.new("RGB", (ancho_px, 150), "white")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, ancho_px - 1, 149], outline="black", width=4)
+    for x in range(0, ancho_px, 50):
+        draw.line([(x, 0), (x, 40)], fill="black", width=2)
+        draw.text((x + 2, 45), str(x), fill="black")
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok", "ancho_px_enviado": ancho_px}
+
+def _posicionar_en_cabezal(img_etiqueta: Image.Image, offset_x: int) -> Image.Image:
+    """Coloca la etiqueta dentro de un lienzo del ancho completo del cabezal,
+    desplazada hacia la derecha para que coincida con la posición física del rollo."""
+    lienzo = Image.new("RGB", (FULL_HEAD_WIDTH_DOTS, img_etiqueta.height), "white")
+    lienzo.paste(img_etiqueta, (offset_x, 0))
+    return lienzo
+
+@app.get("/debug/bordes-papel")
+def debug_bordes_papel():
+    ancho_px = 384
+    img = Image.new("RGB", (ancho_px, 150), "white")
+    draw = ImageDraw.Draw(img)
+    for x in range(0, ancho_px, 10):
+        alto_marca = 30 if x % 20 == 0 else 12
+        draw.line([(x, 0), (x, alto_marca)], fill="black", width=1)
+        if x % 20 == 0:
+            draw.text((x + 1, 33), str(x), fill="black")
+    draw.line([(0, 130), (ancho_px, 130)], fill="black", width=2)
+
+    data  = b'\x1b\x40'
+    data += _imagen_a_escpos_raster(img)
+    data += b'\n'
+    data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+    try:
+        enviar_a_impresora(data)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "ok"}
+
+@app.get("/debug/calibrar-pitch/{n}")
+def calibrar_pitch(n: int):
+    """Imprime N veces una línea delgada en la parte superior de cada 'etiqueta'.
+    Sirve para medir el desfase acumulado y calcular el pitch real."""
+    ancho_px = int(ETIQUETA_ANCHO_IN * ETIQUETA_DPI)
+    alto_px  = int(ETIQUETA_ALTO_IN * ETIQUETA_DPI)
+
+    for i in range(n):
+        img = Image.new("RGB", (ancho_px, alto_px), "white")
+        draw = ImageDraw.Draw(img)
+        draw.line([(0, 5), (ancho_px, 5)], fill="black", width=3)
+        draw.text((5, 15), f"#{i+1}", fill="black")
+
+        lienzo = _posicionar_en_cabezal(img, OFFSET_ETIQUETA_DERECHA)
+
+        data  = b'\x1b\x40'
+        data += _imagen_a_escpos_raster(lienzo)
+        data += b'\n'
+        data += b'\x1b\x4a' + bytes([SALTO_ETIQUETA_PERSONALIZADA])
+        try:
+            enviar_a_impresora(data)
+        except Exception as e:
+            return {"error": str(e)}
+
+    return {"status": "ok", "impresiones": n}
+
+
+def _cargar_logo_bn(path: str, ancho_max: int, alto_max: int):
+    """Carga un logo, lo compone sobre fondo blanco (por si tiene transparencia),
+    lo convierte a blanco/negro puro y lo redimensiona para llenar el espacio disponible."""
+    try:
+        logo_raw = Image.open(path).convert("RGBA")
+        fondo = Image.new("RGBA", logo_raw.size, (255, 255, 255, 255))
+        logo_compuesto = Image.alpha_composite(fondo, logo_raw).convert("L")
+        logo_compuesto.thumbnail((ancho_max, alto_max))
+        logo_bn = logo_compuesto.point(lambda p: 255 if p > 160 else 0).convert("1")
+        return logo_bn.convert("RGB")
+    except Exception:
+        return None
+
+@app.get("/debug/ver-logo")
+def debug_ver_logo():
+    try:
+        logo_original = Image.open(BIOGEM_LOGO_PATH)
+        info = {
+            "existe": True,
+            "tamano_original": logo_original.size,
+            "modo_original": logo_original.mode,
+        }
+    except Exception as e:
+        return {"existe": False, "error": str(e)}
+
+    logo_procesado = _cargar_logo_bn(BIOGEM_LOGO_PATH, 80)
+    if logo_procesado:
+        ruta_debug = os.path.join(EXE_DIR, "logo_debug.png")
+        logo_procesado.save(ruta_debug)
+        info["tamano_procesado"] = logo_procesado.size
+        info["guardado_en"] = ruta_debug
+    else:
+        info["procesado"] = "FALLÓ — devolvió None"
+
+    return info
+
+def validar_campo_etiqueta(valor: str, campo: str, max_len: int = 20) -> str:
+    """Validación flexible para campos de la etiqueta personalizada.
+    Acepta letras, números, decimales, y símbolos comunes (°, %, guiones, comas),
+    pero bloquea caracteres que romperían la impresión o el layout."""
+    valor = valor.strip()
+    if not valor:
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' no puede estar vacío.")
+    if len(valor) > max_len:
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' excede {max_len} caracteres.")
+    patron = r"^[\w\s\-\.\,\/°%áéíóúÁÉÍÓÚñÑ]+$"
+    if not re.match(patron, valor):
+        raise HTTPException(status_code=422, detail=f"El campo '{campo}' contiene caracteres no permitidos.")
+    return valor

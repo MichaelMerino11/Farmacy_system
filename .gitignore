@@ -50,3 +50,6 @@ package-lock.json
 # Scripts de despliegue en Render (no aplica al ejecutable Windows)
 render.yaml
 start.sh
+
+logo_debug.png
+notas.txt
